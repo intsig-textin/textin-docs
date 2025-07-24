@@ -97,12 +97,13 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/intsig-textin/chatdoc_stack?tab=readme-ov-file"
+      "github": "https://github.com/intsig-textin"
     }
   },
   "api": {
     "playground": {
-      "proxy": false
+      "proxy": false,
+      "display": "none"
     }
   }
 }
