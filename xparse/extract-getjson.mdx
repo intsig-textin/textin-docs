@@ -23,37 +23,10 @@ title: "返回JSON结构说明"
       ],
       "bounding_regions": [
         {
-          "position": [
-            201,
-            199,
-            308,
-            199,
-            308,
-            230,
-            201,
-            230
-          ],
+          "position": [201, 199, 308, 199, 308, 230, 201, 230],
           "char_pos": [
-            [
-              202,
-              202,
-              218,
-              201,
-              218,
-              230,
-              201,
-              229
-            ],
-            [
-              220,
-              202,
-              235,
-              202,
-              236,
-              228,
-              220,
-              229
-            ]
+            [202, 202, 218, 201, 218, 230, 201, 229],
+            [220, 202, 235, 202, 236, 228, 220, 229]
           ],
           "page_id": 1,
           "value": "011892"
@@ -81,16 +54,7 @@ title: "返回JSON结构说明"
         ],
         "tables": [
           {
-            "position": [
-              343,
-              56,
-              459,
-              56,
-              459,
-              90,
-              343,
-              90
-            ],
+            "position": [343, 56, 459, 56, 459, 90, 343, 90],
             "page_number": 1,
             "text": "<table><tr><td>姓名</td><td>年龄</td></tr><tr><td>张三</td><td>18</td></tr></table>"
           }
@@ -113,16 +77,7 @@ title: "返回JSON结构说明"
         "stamps": [
           {
             "color": "红色",
-            "position": [
-              956,
-              583,
-              1362,
-              590,
-              1355,
-              990,
-              950,
-              983
-            ],
+            "position": [956, 583, 1362, 590, 1355, 990, 950, 983],
             "stamp_shape": "圆章",
             "type": "公章",
             "value": "电力公司专用章"
@@ -135,16 +90,7 @@ title: "返回JSON结构说明"
       [
         {
           "page_id": 0,
-          "position": [
-            956,
-            583,
-            1362,
-            590,
-            1355,
-            990,
-            950,
-            983
-          ],
+          "position": [956, 583, 1362, 590, 1355, 990, 950, 983],
           "paragraph_id": 10,
           "type": "paragraph",
           "text": "<string>"
@@ -206,11 +152,7 @@ title: "返回JSON结构说明"
 - **height**：文档页高度
 - **angle**：图像的角度（可选值0, 90, 180, 270)
 - **image_id**：当前页图片id 。
-  - 下载方式：例如使用curl下载：
-    - curl '[https://api.textin.com/ocr_image/download?image_id=xxx'](https://api.textin.com/ocr_image/download?image_id=xxx)
-
-      --header 'x-ti-app-id: c81f\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*e9ff'\
-      --header 'x-ti-secret-code: 5508\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*1c17'
+  - 下载方式：https://api.textin.com/ocr_image/download?image_id=xxx ,需要在headers里添加appid和key）
 - **origin_image_id**：切边或去水印前的原始页图片。受URL参数**切边矫正**或**去水印**影响，详情见[快速启动-URL参数说明](/xparse/extract-quickstart)。仅当开启切边或去水印时返回。
   - 下载方式同image_id
 
@@ -224,7 +166,7 @@ title: "返回JSON结构说明"
 
 ### details：字段模式抽取的结果
 
-- **additionalProp1**
+- **additionalProp1**：表示抽取字段1
   - **value**：字段识别结果
   - **position**：文档被转正后，value在文档中的坐标，是一个长度为8的数组 [0,1,2,3,4,5,6,7]
     - (0, 1) 左上角坐标
@@ -238,19 +180,19 @@ title: "返回JSON结构说明"
     - **pos**：文本行坐标，例如[100, 200, 200, 200, 300, 200, 100, 300]
     - **angle**：文本行旋转角度，例如"90"
     - **char_pos**：文本行字符坐标
-- **additionalProp2**
-  - 同**additionalProp1**
-- **additionalProp3**
-  - 同**additionalProp1**
+- **additionalProp2**：表示抽取字段2
+  - 同**additionalProp1**的输出结构
+- **additionalProp3**：表示抽取字段3
+  - 同**additionalProp1**的输出结构
 - **row**：table_header的抽取结果
-  - 同**additionalProp1**
+  - 同**additionalProp1**的输出结构
 
 ### category：`details`字段里的数据类型
 
 one_to_one：表示单值抽取的key；item_list：表示表格的抽取
 
 - **row**：表格类型，"item_list"
-- **key**：虚拟字段，真实调用时为抽取的key，"one_to_one"，例如：
+- **key**：虚拟字段表示，真实调用时为抽取的字段，"one_to_one"，例如：
   - **additionalProp1**：one_to_one
   - **additionalProp2**：one_to_one
   - **additionalProp3**：one_to_one
@@ -276,17 +218,17 @@ one_to_one：表示单值抽取的key；item_list：表示表格的抽取
   - **title**：title，例如"row"
 - **category**：结构化抽取出来的所有字段，例如["标题", "性别"]
 - **fields**：提取的字段结构化结果
-  - **additionalProp1**
+  - **additionalProp1**：表示抽取字段1
     - **value**：字段识别结果
     - **bounding_regions**：边界框信息
       - **page_number**：所在页码
       - **value**：文本内容
       - **position**：文本的坐标
       - **char_pos**：每个字符的坐标
-  - **additionalProp2**
-    - 同**additionalProp1**
-  - **additionalProp3**
-    - 同**additionalProp1**
+  - **additionalProp2**：表示抽取字段2
+    - 同**additionalProp1**的输出结构
+  - **additionalProp3**：表示抽取字段3
+    - 同**additionalProp1**的输出结构
 - **stamps**：印章识别结果
   - **color**：当前印章颜色
     - 红色

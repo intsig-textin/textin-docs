@@ -103,7 +103,7 @@
   "api": {
     "playground": {
       "proxy": false,
-      "display": "none"
+      "display": "simple"
     }
   }
 }
