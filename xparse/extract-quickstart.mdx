@@ -25,7 +25,7 @@ description: "参考示例，快速将文档抽取API接入到您的系统和应
 
 ### 先决条件：获取API Key
 
-使用文档抽取API处理文档时，您需要先获取API Key。请先登录后前往 [TextIn工作台 - 账号与开发者信息](https://www.textin.com/console/dashboard/setting) 获取您的x-ti-app-id 和 x-ti-secret-code 。
+使用文档抽取API处理文档时，您需要先获取API Key。请先登录后前往 [TextIn工作台 - 账号与开发者信息](https://www.textin.com/console/dashboard/setting) 获取您的x-ti-app-id 和 x-ti-secret-code
 
 ### 前置准备
 
@@ -326,6 +326,12 @@ if __name__ == "__main__":
   }
 }
 ```
+
+### 输出速度说明
+
+文档抽取API是基于大模型的智能语义理解抽取，为了保持高精度的输出结果，目前的抽取输出速度约为20token/s左右。如果您的文档或抽取要求较为复杂，可能需要比较长的时间才能得到完整输出结果。
+
+在API的返回结果中有关于大模型token消耗情况的详细统计，您可以根据大模型token消耗情况核对并大致估算所需时间。详情可在[**返回JSON结构说明**](/xparse/extract-getjson)中查看**usage**字段说明。关于抽取输出速度这一点我们也会持续优化，为您提供更好的服务。
 
 ### 错误码说明
 
