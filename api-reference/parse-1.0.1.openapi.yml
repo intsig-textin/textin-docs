@@ -150,6 +150,18 @@ paths:
 
         - in: query
           required: false
+          name: apply_merge
+          schema:
+            type: integer
+            default: 1
+            enum: [0, 1]
+            description: |
+             是否进行段落合并和表格合并。默认为1，合并段落和表格。
+             - 0 不合并
+             - 1 合并
+
+        - in: query
+          required: false
           name: apply_image_analysis
           schema:
             type: integer
@@ -159,18 +171,6 @@ paths:
             利用大模型对文档中的子图进行分析。分析结果以markdown格式输出，并替换掉子图的文本识别内容。默认为0，不进行图像分析。
             - 0 不进行图像分析
             - 1 进行图像分析
-
-        - in: query
-          required: false
-          name: apply_merge
-          schema:
-            type: integer
-            default: 1
-            enum: [0, 1]
-           description: |
-             是否进行段落合并和表格合并。默认为1，合并段落和表格。
-             - 0 不合并
-             - 1 合并
 
         - in: query
           required: false
