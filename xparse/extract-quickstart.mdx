@@ -167,20 +167,20 @@ if __name__ == "__main__":
     # 设置请求体参数，自定义key模式
     request_body = dict(
         fields=[
-            {"name": "实付金额", "description": "实付金额"},
-            {"name": "消费日期", "description": "消费日期"},
-            {"name": "店铺名称", "description": "店铺名称"},
-            {"name": "订单号", "description": "订单号"}
+            {"name": "实付金额", "description": "抽取小票中的实付金额"},
+            {"name": "消费日期", "description": "抽取小票中的消费日期"},
+            {"name": "店铺名称", "description": "抽取小票中的店铺名称"},
+            {"name": "订单号", "description": "抽取小票中的订单号"}
         ],
         table_fields=[
             {
                 "title": "商品信息表",
-                "description": "商品明细表格",
+                "description": "抽取商品明细表格",
                 "fields": [
-                    {"name": "货号", "description": "货号"},
-                    {"name": "商品名称", "description": "商品名称"},
-                    {"name": "数量", "description": "数量"},
-                    {"name": "单价", "description": "单价"}
+                    {"name": "货号", "description": "抽取商品的货号"},
+                    {"name": "商品名称", "description": "抽取商品信息的商品名称"},
+                    {"name": "数量", "description": "抽取商品的数量"},
+                    {"name": "单价", "description": "抽取商品的单价"}
                 ]
             }
         ]
