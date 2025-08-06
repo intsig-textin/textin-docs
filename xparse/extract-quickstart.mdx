@@ -109,97 +109,96 @@ if __name__ == "__main__":
 
 ### 抽取模式说明
 
-<Tabs>
-  <Tab title="prompt模式">
-    提供一个prompt，系统将根据该prompt进行抽取。
+#### prompt模式
 
-    复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件和抽取prompt；运行脚本以prompt模式对文档做结构化抽取并将结果作为JSON文件保存。
+提供一个prompt，系统将根据该prompt进行抽取。
 
-    ```python
-        # 在main函数中插入
-        # 定义文件路径，替换为你的文件
-        file_path = "你的文件.pdf"
-        
-        # 读取本地文件
-        with open(file_path, "rb") as f:
-            file_content = f.read()
-    
-        # 设置URL参数，可按需设置，详情见下文URL参数说明
-        options = dict(
-            parse_mode="scan"
-        )
-    
-        # 设置请求体参数，prompt模式
-        request_body = dict(
-            prompt="请抽取这张小票中的实付金额、消费日期、店铺名称、订单号并以字段格式返回，请抽取货号、商品名称、数量、单价，并以表格格式返回"
-        )
-    
-        try:
-            response = client.extract(file_content, options, request_body)
-    
-            # 保存完整的JSON响应到result.json文件
-            with open("prompt_extract_result.json", "w", encoding="utf-8") as f:
-                f.write(response)
-    
-            print(response)
-        except Exception as e:
-            print(f"Error: {e}")
-    ```
-  </Tab>
-  <Tab title="字段模式">
-    提供一个fields与table_fields列表，系统将根据该列表进行抽取。
+复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件和抽取prompt；运行脚本以prompt模式对文档做结构化抽取并将结果作为JSON文件保存。
 
-    复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件以及自定义的fields与table_fields；运行脚本以字段模式对文档做结构化抽取并将结果作为JSON文件保存。
+```python
+    # 在main函数中插入
+    # 定义文件路径，替换为你的文件
+    file_path = "你的文件.pdf"
+    
+    # 读取本地文件
+    with open(file_path, "rb") as f:
+        file_content = f.read()
 
-    ```python
-        # 在main函数中插入
-        # 定义文件路径，替换为你的文件
-        file_path = "你的文件.pdf"
-        
-        # 读取本地文件
-        with open(file_path, "rb") as f:
-            file_content = f.read()
+    # 设置URL参数，可按需设置，详情见下文URL参数说明
+    options = dict(
+        parse_mode="scan"
+    )
+
+    # 设置请求体参数，prompt模式
+    request_body = dict(
+        prompt="请抽取这张小票中的实付金额、消费日期、店铺名称、订单号并以字段格式返回，请抽取货号、商品名称、数量、单价，并以表格格式返回"
+    )
+
+    try:
+        response = client.extract(file_content, options, request_body)
+
+        # 保存完整的JSON响应到result.json文件
+        with open("prompt_extract_result.json", "w", encoding="utf-8") as f:
+            f.write(response)
+
+        print(response)
+    except Exception as e:
+        print(f"Error: {e}")
+```
+
+#### 字段模式
+
+提供一个fields与table_fields列表，系统将根据该列表进行抽取。
+
+复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件以及自定义的fields与table_fields；运行脚本以字段模式对文档做结构化抽取并将结果作为JSON文件保存。
+
+```python
+    # 在main函数中插入
+    # 定义文件路径，替换为你的文件
+    file_path = "你的文件.pdf"
     
-        # 设置URL参数，可按需设置，详情见下文URL参数说明
-        options = dict(
-            parse_mode="scan"
-        )
-    
-        # 设置请求体参数，自定义key模式
-        request_body = dict(
-            fields=[
-                {"name": "实付金额", "description": "抽取小票中的实付金额"},
-                {"name": "消费日期", "description": "抽取小票中的消费日期"},
-                {"name": "店铺名称", "description": "抽取小票中的店铺名称"},
-                {"name": "订单号", "description": "抽取小票中的订单号"}
-            ],
-            table_fields=[
-                {
-                    "title": "商品信息表",
-                    "description": "抽取商品明细表格",
-                    "fields": [
-                        {"name": "货号", "description": "抽取商品的货号"},
-                        {"name": "商品名称", "description": "抽取商品信息的商品名称"},
-                        {"name": "数量", "description": "抽取商品的数量"},
-                        {"name": "单价", "description": "抽取商品的单价"}
-                    ]
-                }
-            ]
-        )
-    
-        try:
-            response = client.extract(file_content, options, request_body)
-    
-            # 保存完整的JSON响应到result.json文件
-            with open("key_extract_result.json", "w", encoding="utf-8") as f:
-                f.write(response)
-    
-            print(response)
-        except Exception as e:
-            print(f"Error: {e}")
-    ```
-  </Tab>
-</Tabs>
+    # 读取本地文件
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    # 设置URL参数，可按需设置，详情见下文URL参数说明
+    options = dict(
+        parse_mode="scan"
+    )
+
+    # 设置请求体参数，自定义key模式
+    request_body = dict(
+        fields=[
+            {"name": "实付金额", "description": "抽取小票中的实付金额"},
+            {"name": "消费日期", "description": "抽取小票中的消费日期"},
+            {"name": "店铺名称", "description": "抽取小票中的店铺名称"},
+            {"name": "订单号", "description": "抽取小票中的订单号"}
+        ],
+        table_fields=[
+            {
+                "title": "商品信息表",
+                "description": "抽取商品明细表格",
+                "fields": [
+                    {"name": "货号", "description": "抽取商品的货号"},
+                    {"name": "商品名称", "description": "抽取商品信息的商品名称"},
+                    {"name": "数量", "description": "抽取商品的数量"},
+                    {"name": "单价", "description": "抽取商品的单价"}
+                ]
+            }
+        ]
+    )
+
+    try:
+        response = client.extract(file_content, options, request_body)
+
+        # 保存完整的JSON响应到result.json文件
+        with open("key_extract_result.json", "w", encoding="utf-8") as f:
+            f.write(response)
+
+        print(response)
+    except Exception as e:
+        print(f"Error: {e}")
+```
 
 ### URL参数说明
 
@@ -233,112 +232,112 @@ if __name__ == "__main__":
 
 抽取后的结果数据将按照以下JSON格式返回，下面为您提供了两段返回示例。如果您想了解最全面的返回结果说明，可以在[**返回JSON结构说明**](/xparse/extract-getjson)中查看，也可以在[**API**](/api-reference/endpoint/extract)中查看和调试。
 
-<Tabs>
-  <Tab title="prompt模式">
-    ```json
-    {
-      "version": "v1.6.5",                    // API版本号
-      "code": 200,                            // 错误码，200表示成功
-      "message": "success",                   // 错误信息，成功时为"success"
-      "duration": 2825,                       // 推理时间(毫秒)
-      "result": {                             // 主要结果对象
-        "llm_json": {                         // prompt模式抽取的原始结果
-          "确认日期": "2024/4/3",              // 用户自定义字段，由prompt决定
-          "基金代码": "011892",                // 用户自定义字段，由prompt决定
-          "持仓金额": "74178.80"               // 用户自定义字段，由prompt决定
-        },
-        "raw_json": {                         // prompt模式抽取的带坐标信息抽取结果
-          "value": "011892",                  // 字段的抽取值
-          "pages": [1],                       // 字段所在的页码列表
-          "bounding_regions": [               // 字段的边界框信息
-            {
-              "position": [201,199,308,199,308,230,201,230],  // 字段在文档中的坐标位置
-              "char_pos": [                   // 每个字符的详细坐标信息
-                [202,202,218,201,218,230,201,229],
-                [220,202,235,202,236,228,220,229]
-              ],
-              "page_id": 1,                  // 所在页码ID
-              "value": "011892"              // 该边界框内的文本内容
-            }
-          ]
-        },
-        "pages": [                            // prompt模式抽取的页面信息，按页组织
-          {
-            "status": "success",              // 当前页的引擎输出状态
-            "page_id": 0,                    // 当前页码
-            "durations": 612.5,              // 当前页解析总耗时(毫秒)
-            "image_id": "90u12adcad08r2",    // 当前页图片id
-            "origin_image_id": "90u12adcad08r2", // 切边或去水印前的原始页图片
-            "width": 123,                    // 文档页宽度
-            "height": 123,                   // 文档页高度
-            "angle": 0                     // 图像的角度
-          }
-        ],
-        "usage": {                            // prompt模式抽取的大模型token消耗情况
-          "prompt_tokens": 100,              // 大模型抽取输入消耗token数量
-          "completion_tokens": 100,          // 大模型抽取输出消耗token数量
-          "total_tokens": 200                // 大模型抽取总消耗token数量
+<CodeGroup>
+
+```json prompt模式
+{
+  "version": "v1.6.5",                    // API版本号
+  "code": 200,                            // 错误码，200表示成功
+  "message": "success",                   // 错误信息，成功时为"success"
+  "duration": 2825,                       // 推理时间(毫秒)
+  "result": {                             // 主要结果对象
+    "llm_json": {                         // prompt模式抽取的原始结果
+      "确认日期": "2024/4/3",              // 用户自定义字段，由prompt决定
+      "基金代码": "011892",                // 用户自定义字段，由prompt决定
+      "持仓金额": "74178.80"               // 用户自定义字段，由prompt决定
+    },
+    "raw_json": {                         // prompt模式抽取的带坐标信息抽取结果
+      "value": "011892",                  // 字段的抽取值
+      "pages": [1],                       // 字段所在的页码列表
+      "bounding_regions": [               // 字段的边界框信息
+        {
+          "position": [201,199,308,199,308,230,201,230],  // 字段在文档中的坐标位置
+          "char_pos": [                   // 每个字符的详细坐标信息
+            [202,202,218,201,218,230,201,229],
+            [220,202,235,202,236,228,220,229]
+          ],
+          "page_id": 1,                  // 所在页码ID
+          "value": "011892"              // 该边界框内的文本内容
         }
+      ]
+    },
+    "pages": [                            // prompt模式抽取的页面信息，按页组织
+      {
+        "status": "success",              // 当前页的引擎输出状态
+        "page_id": 0,                    // 当前页码
+        "durations": 612.5,              // 当前页解析总耗时(毫秒)
+        "image_id": "90u12adcad08r2",    // 当前页图片id
+        "origin_image_id": "90u12adcad08r2", // 切边或去水印前的原始页图片
+        "width": 123,                    // 文档页宽度
+        "height": 123,                   // 文档页高度
+        "angle": 0                     // 图像的角度
       }
+    ],
+    "usage": {                            // prompt模式抽取的大模型token消耗情况
+      "prompt_tokens": 100,              // 大模型抽取输入消耗token数量
+      "completion_tokens": 100,          // 大模型抽取输出消耗token数量
+      "total_tokens": 200                // 大模型抽取总消耗token数量
     }
-    ```
-  </Tab>
-  <Tab title="字段模式">
-    ```json
-    {
-      "version": "v1.6.5",                    // API版本号
-      "code": 200,                            // 错误码，200表示成功
-      "message": "success",                   // 错误信息，成功时为"success"
-      "duration": 2825,                       // 推理时间(毫秒)
-      "result": {                             // 主要结果对象
-        "details": {                          // 字段模式抽取的结果
-          "row": [{}]                        // 表格抽取结果
-        },
-        "category": {                         // details字段里的数据类型
-          "row": "item_list"                 // 表格类型，"item_list"表示表格抽取
-        },
-        "detail_structure": [                 // 字段的识别信息
+  }
+}
+```
+
+
+```json 字段模式
+{
+  "version": "v1.6.5",                    // API版本号
+  "code": 200,                            // 错误码，200表示成功
+  "message": "success",                   // 错误信息，成功时为"success"
+  "duration": 2825,                       // 推理时间(毫秒)
+  "result": {                             // 主要结果对象
+    "details": {                          // 字段模式抽取的结果
+      "row": [{}]                        // 表格抽取结果
+    },
+    "category": {                         // details字段里的数据类型
+      "row": "item_list"                 // 表格类型，"item_list"表示表格抽取
+    },
+    "detail_structure": [                 // 字段的识别信息
+      {
+        "doc_type": "doc",               // 文档的类型
+        "page_range": [1,2],             // 抽取的信息所在页范围
+        "tables": [                      // 表格信息
           {
-            "doc_type": "doc",               // 文档的类型
-            "page_range": [1,2],             // 抽取的信息所在页范围
-            "tables": [                      // 表格信息
-              {
-                "position": [343,56,459,56,459,90,343,90], // 坐标
-                "page_number": 1,            // 所在页
-                "text": "<table><tr><td>姓名</td><td>年龄</td></tr><tr><td>张三</td><td>18</td></tr></table>" // html形式的表格
-              }
-            ],
-            "tables_relationship": [          // 表格的结构化信息
-              {
-                "row_count": 2,              // 行数
-                "column_count": 2,           // 列数
-                "cells": [{}],               // 单元格信息
-                "title": "row"               // title
-              }
-            ],
-            "category": ["标题","性别"],       // 结构化抽取出来的所有字段
-            "fields": {},                    // 提取的字段结构化结果
-            "stamps": [                      // 印章识别结果
-              {
-                "color": "红色",              // 当前印章颜色
-                "position": [956,583,1362,590,1355,990,950,983], // 印章的坐标信息
-                "stamp_shape": "圆章",        // 当前印章形状
-                "type": "公章",              // 当前印章类型
-                "value": "电力公司专用章"      // 印章的文本内容
-              }
-            ]
+            "position": [343,56,459,56,459,90,343,90], // 坐标
+            "page_number": 1,            // 所在页
+            "text": "<table><tr><td>姓名</td><td>年龄</td></tr><tr><td>张三</td><td>18</td></tr></table>" // html形式的表格
           }
         ],
-        "rotated_image_width": 1000,         // 正方向时文档的宽，仅文档为图片时有效
-        "rotated_image_height": 2000,        // 正方向时文档高，仅文档为图片时有效
-        "page_count": 10,                    // 智能文档抽取处理的文档页数
-        "image_angle": 90,                   // 文档角度，指原文档需要经过逆时针旋转多少度才能得到正方向的文档
-        "finish_reason": "stop"              // 推理结束的原因，"stop"表示正常推理结束
+        "tables_relationship": [          // 表格的结构化信息
+          {
+            "row_count": 2,              // 行数
+            "column_count": 2,           // 列数
+            "cells": [{}],               // 单元格信息
+            "title": "row"               // title
+          }
+        ],
+        "category": ["标题","性别"],       // 结构化抽取出来的所有字段
+        "fields": {},                    // 提取的字段结构化结果
+        "stamps": [                      // 印章识别结果
+          {
+            "color": "红色",              // 当前印章颜色
+            "position": [956,583,1362,590,1355,990,950,983], // 印章的坐标信息
+            "stamp_shape": "圆章",        // 当前印章形状
+            "type": "公章",              // 当前印章类型
+            "value": "电力公司专用章"      // 印章的文本内容
+          }
+        ]
       }
-    }
-    ```
-  </Tab>
-</Tabs>
+    ],
+    "rotated_image_width": 1000,         // 正方向时文档的宽，仅文档为图片时有效
+    "rotated_image_height": 2000,        // 正方向时文档高，仅文档为图片时有效
+    "page_count": 10,                    // 智能文档抽取处理的文档页数
+    "image_angle": 90,                   // 文档角度，指原文档需要经过逆时针旋转多少度才能得到正方向的文档
+    "finish_reason": "stop"              // 推理结束的原因，"stop"表示正常推理结束
+  }
+}
+```
+
+</CodeGroup>
 
 ### 输出速度说明
 
