@@ -110,7 +110,7 @@ if __name__ == "__main__":
 ### 抽取模式说明
 
 <Tabs>
-  <Tab title="prompt模式抽取">
+  <Tab title="prompt模式">
     提供一个prompt，系统将根据该prompt进行抽取。
 
     复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件和抽取prompt；运行脚本以prompt模式对文档做结构化抽取并将结果作为JSON文件保存。
@@ -146,7 +146,7 @@ if __name__ == "__main__":
             print(f"Error: {e}")
     ```
   </Tab>
-  <Tab title="字段模式抽取">
+  <Tab title="字段模式">
     提供一个fields与table_fields列表，系统将根据该列表进行抽取。
 
     复制以下示例代码，粘贴至前置准备代码的main函数中；替换要抽取的文件以及自定义的fields与table_fields；运行脚本以字段模式对文档做结构化抽取并将结果作为JSON文件保存。
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 抽取后的结果数据将按照以下JSON格式返回，下面为您提供了两段返回示例。如果您想了解最全面的返回结果说明，可以在[**返回JSON结构说明**](/xparse/extract-getjson)中查看，也可以在[**API**](/api-reference/endpoint/extract)中查看和调试。
 
 <Tabs>
-  <Tab title="prompt模式抽取返回结果示例">
+  <Tab title="prompt模式">
     ```json
     {
       "version": "v1.6.5",                    // API版本号
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     }
     ```
   </Tab>
-  <Tab title="字段模式抽取返回结果示例">
+  <Tab title="字段模式">
     ```json
     {
       "version": "v1.6.5",                    // API版本号
