@@ -43,6 +43,12 @@
               "xparse/extract-asyncio",
               "xparse/extract-max-concurrent"
             ]
+          },
+          {
+            "group": "FAQ",
+            "pages": [
+              "xparse/charge"
+            ]
           }
         ]
       },
