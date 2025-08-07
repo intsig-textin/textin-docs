@@ -69,7 +69,7 @@ paths:
 
         - in: query
           required: false
-          name: crop_dewarp
+          name: crop_image
           schema:
             type: integer
             default: 0
