@@ -945,6 +945,23 @@ components:
               [0, 0, 100, 100, 100, 200, 0, 200],
               [0, 0, 100, 100, 100, 200, 0, 200],
             ]
+        stamp:
+          type: object
+          description: 当sub_type为stamp时，返回印章识别结果
+          properties:
+            value:
+              type: string
+              description: 印章文本内容
+            stamp_shape:
+              type: string
+              description: 印章形状
+            type:
+              type: string
+              description: 印章类型
+            color:
+              type: string
+              description: 印章颜色
+
       required:
         - page_id
         - paragraph_id
@@ -969,14 +986,13 @@ components:
         type:
           type: string
           description: 数据类型,line
-          enum: ["line", "image"]
           example: line
         text:
           type: string
           description: 文本行文字内容, 当sub_type=stamp时， text为印章上的文字.
         angle:
           type: integer
-          description: 文本行文字方向, 默认为0(angle为0时， json中可能不包含angle属性).
+          description: 文本行文字方向。文本行方向是基于转正后的页面计算，即angle=0表示文本行方向和页面方向一致。
           enum: [0, 90, 180, 270]
         pos:
           type: array
@@ -993,9 +1009,9 @@ components:
             type: integer
         sub_type:
           type: string
-          description: 子类型, 当type为line时，有handwriting, formula; 当type为image, 取值范围为stamp(印章),chart(图表),qrcode(二维码),barcode(条形码)
-          enum:
-            ["handwriting", "formula", "stamp", "chart", "qrcode", "barcode"]
+          description: 子类型, 有handwriting, formula
+          enum: ["handwriting", "formula"]
+
         direction:
           type: integer
           description: "文字方向, 默认为0. 0:横向文本; 1:竖向文本; 2:横向右往左文本（如阿拉伯语）"
@@ -1050,6 +1066,23 @@ components:
           type: object
           description: 图像内容
           $ref: "#/components/schemas/imagedata"
+        stamp:
+          type: object
+          description: 仅当sub_type为stamp时有值，为印章识别结果
+          properties:
+            value:
+              type: string
+              description: 印章文本内容
+            stamp_shape:
+              type: string
+              description: 印章形状
+            type:
+              type: string
+              description: 印章类型
+            color:
+              type: string
+              description: 印章颜色
+
     imageblock:
       type: object
       description: 图像块
