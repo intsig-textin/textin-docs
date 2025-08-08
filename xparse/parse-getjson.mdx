@@ -9,8 +9,113 @@ title: "返回JSON结构说明"
   "code": 200,
   "message": "success",
   "result": {
-    "total_page_number": 10,
-    "valid_page_number": 3,
+    "markdown": "# hello markdown",
+    "detail": [
+      {
+        "page_id": 1,
+        "paragraph_id": 123,
+        "outline_level": -1,
+        "text": "hello markdown",
+        "position": [
+          217,
+          390,
+          1336,
+          390,
+          1336,
+          460,
+          217,
+          460
+        ],
+        "origin_position": [
+          217,
+          390,
+          1336,
+          390,
+          1336,
+          460,
+          217,
+          460
+        ],
+        "content": 0,
+        "type": "paragraph",
+        "sub_type": "catalog",
+        "image_url": "<string>",
+        "tags": [
+          "formula",
+          "handwritten"
+        ],
+        "caption_id": {
+          "page_id": 123,
+          "paragraph_id": 123
+        },
+        "cells": [
+          {
+            "row": 123,
+            "col": 123,
+            "row_span": 123,
+            "col_span": 123,
+            "position": [
+              10,
+              10,
+              100,
+              10,
+              100,
+              50,
+              10,
+              50
+            ],
+            "origin_position": [
+              123
+            ],
+            "text": "<string>",
+            "type": "<string>"
+          }
+        ],
+        "split_section_page_ids": [
+          1,
+          2,
+          3
+        ],
+        "split_section_positions": [
+          [
+            0,
+            0,
+            100,
+            100,
+            100,
+            200,
+            0,
+            200
+          ],
+          [
+            0,
+            0,
+            100,
+            100,
+            100,
+            200,
+            0,
+            200
+          ],
+          [
+            0,
+            0,
+            100,
+            100,
+            100,
+            200,
+            0,
+            200
+          ]
+        ],
+        "stamp": {
+          "value": "<string>",
+          "stamp_shape": "<string>",
+          "type": "<string>",
+          "color": "<string>"
+        }
+      }
+    ],
     "pages": [
       {
         "status": "success",
@@ -71,6 +176,36 @@ title: "返回JSON结构说明"
               0.99,
               0.93,
               0.87
+            ],
+            "char_centers": [
+              [
+                20,
+                10
+              ],
+              [
+                30,
+                10
+              ],
+              [
+                40,
+                10
+              ],
+              [
+                50,
+                10
+              ],
+              [
+                60,
+                10
+              ],
+              [
+                70,
+                10
+              ],
+              [
+                80,
+                10
+              ]
             ],
             "char_positions": [
               [
@@ -220,106 +355,6 @@ title: "返回JSON结构说明"
         ]
       }
     ],
-    "detail": [
-      {
-        "page_id": 1,
-        "paragraph_id": 123,
-        "outline_level": -1,
-        "text": "hello markdown",
-        "type": "paragraph",
-        "image_url": "<string>",
-        "content": 0,
-        "position": [
-          217,
-          390,
-          1336,
-          390,
-          1336,
-          460,
-          217,
-          460
-        ],
-        "origin_position": [
-          217,
-          390,
-          1336,
-          390,
-          1336,
-          460,
-          217,
-          460
-        ],
-        "sub_type": "catalog",
-        "tags": [
-          "formula",
-          "handwritten"
-        ],
-        "caption_id": {
-          "page_id": 123,
-          "paragraph_id": 123
-        },
-        "cells": [
-          {
-            "row": 123,
-            "col": 123,
-            "row_span": 123,
-            "col_span": 123,
-            "position": [
-              10,
-              10,
-              100,
-              10,
-              100,
-              50,
-              10,
-              50
-            ],
-            "origin_position": [
-              123
-            ],
-            "text": "<string>",
-            "type": "<string>"
-          }
-        ],
-        "split_section_page_ids": [
-          1,
-          2,
-          3
-        ],
-        "split_section_positions": [
-          [
-            0,
-            0,
-            100,
-            100,
-            100,
-            200,
-            0,
-            200
-          ],
-          [
-            0,
-            0,
-            100,
-            100,
-            100,
-            200,
-            0,
-            200
-          ],
-          [
-            0,
-            0,
-            100,
-            100,
-            100,
-            200,
-            0,
-            200
-          ]
-        ]
-      }
-    ],
     "catalog": {
       "toc": [
         [
@@ -356,7 +391,8 @@ title: "返回JSON结构说明"
         ]
       ]
     },
-    "markdown": "# hello markdown",
+    "total_page_number": 10,
+    "valid_page_number": 3,
     "excel_base64": ""
   },
   "version": "2.1.0",
@@ -428,6 +464,13 @@ detail包含markdown中不同类型元素的详细信息。受URL参数**markdow
     - **origin_position**：受URL参数**切边矫正**或**去水印**影响，详情见[快速启动-URL参数说明](/xparse/parse-quickstart)。仅当打开切边或去水印时返回，表示该单元格在原图中的坐标。格式同position。
     - **text**：单元格文本内容。
     - **type**：类型，固定为cell，表示单元格。
+  - **split_section_page_ids**：当表格/段落有合并时，记录合并前各个子表格/段落所在的页的id
+  - **split_section_positions**：当表格/段落有合并时，记录合并前各个子表格/段落所在页的位置，位置所属的页码与split_section_page_ids按索引一一对应，如split_section_positions[2]所属的页码为split_section_page_ids[2]
+  - **stamp**：当sub_type为stamp时，返回印章识别结果
+    - **value**：印章文本内容
+    - **stamp_shape**：印章形状
+    - **type**：印章类型
+    - **color**：印章颜色
 
 ### pages：每一页的详细信息
 
@@ -472,13 +515,11 @@ detail包含markdown中不同类型元素的详细信息。受URL参数**markdow
     - **textline：文字行**
       - **id**：数据id(页内唯一)
       - **type**：数据类型,line
-      - **text**：文本行文字内容, 当sub_type=stamp时， text为印章上的文字。
+      - **text**：文本行文字内容
       - **angle**：文本行文字方向, 默认为0(angle为0时， json中可能不包含angle属性)。
       - **pos**：文本行四个角点坐标。
       - **origin_position**：表示文本行在原图中的坐标。受URL参数**切边矫正**或**去水印**影响，详情见[**快速启动-URL参数说明**](https://docs.textin.com/xparse/parse-quickstart)。仅当打开切边或去水印时返回，格式同pos。
-      - **sub_type**：子类型。
-        - 当**type**为line时，取值范围有handwriting, formula;
-        - 当**type**为image时，取值范围有stamp(印章),chart(图表),qrcode(二维码),barcode(条形码)
+      - **sub_type**：子类型。有handwriting, formula。
       - **direction**：文字方向, 默认为0。
         - 0:横向文本;
         - 1:竖向文本;
@@ -495,6 +536,11 @@ detail包含markdown中不同类型元素的详细信息。受URL参数**markdow
         - **base64**：图像文件(jpg, png)的base64字符串
         - **region**：图像在页图像中的区域（四边形4个点坐标）
         - **path**：图像文件路径（如在zip包中的路径）
+      - **stamp**：当sub_type为stamp时，返回印章识别结果
+        - **value**：印章文本内容
+        - **stamp_shape**：印章形状
+        - **type**：印章类型
+        - **color**：印章颜色
   - **structured**：结构化数据，为段落块、图像块、表格块、页脚块、页眉块中的一种。
     - **textblock：段落块**
       - **type**：段落块类型， 固定为 textblock
