@@ -401,18 +401,18 @@ components:
             - 40301: 图片类型不支持
             - 40302: 上传文件大小不符，文件大小不超过 500M
             - 40303: 文件类型不支持，接口会返回实际检测到的文件类型，如“当前文件类型为.gif”
-            - 40304	图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内
-            - 40305	识别文件未上传
-            - 40422	文件损坏（The file is corrupted.）
-            - 40423	PDF密码错误（Password required or incorrect password.）
-            - 40424	页数设置超出文件范围（Page number out of range.）
-            - 40425	文件格式不支持（The input file format is not supported.）
-            - 40427	DPI参数不在支持列表中（Input DPI is not in the allowed DPIs list(72,144,216).）
-            - 40428	word和ppt转pdf失败或者超时（Process office file failed.）
-            - 50207	部分页面解析失败（Partial failed）
-            - 40400	无效的请求链接，请检查链接是否正确
-            - 30203	基础服务故障，请稍后重试
-            - 500	服务器内部错误
+            - 40304: 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内
+            - 40305: 识别文件未上传
+            - 40422: 文件损坏（The file is corrupted.）
+            - 40423: PDF密码错误（Password required or incorrect password.）
+            - 40424: 页数设置超出文件范围（Page number out of range.）
+            - 40425: 文件格式不支持（The input file format is not supported.）
+            - 40427: DPI参数不在支持列表中（Input DPI is not in the allowed DPIs list(72,144,216).）
+            - 40428: word和ppt转pdf失败或者超时（Process office file failed.）
+            - 50207: 部分页面解析失败（Partial failed）
+            - 40400: 无效的请求链接，请检查链接是否正确
+            - 30203: 基础服务故障，请稍后重试
+            - 500: 服务器内部错误
           enum:
             - 200
             - 40101
