@@ -265,10 +265,11 @@ title: "文档抽取v3"
 
 ### 常规字段说明
 
-- x_request_id：该请求的唯一标识。
-- code：错误码，200表示成功。详情见[**快速启动-错误码说明**](https://docs.textin.com/xparse/extract-quickstart)。
-- message：错误信息，成功时为”success”。
-- version：版本号，例如”v1.6.5”。
+- x_request_id：该请求的唯一标识
+- code：错误码，200表示成功。详情见[**快速启动-错误码说明**](https://docs.textin.com/xparse/extract-quickstart)
+- message：错误信息，成功时为”success”
+- version：版本号，例如”v1.6.5”
+- success_count：成功处理的文档页数
 
 ### 主要结果说明：result对象
 
@@ -276,15 +277,18 @@ title: "文档抽取v3"
 
 #### extracted_schema：key-value形式的抽取结果
 
-key与传入的schema结构一致，value为对应的抽取结果。
+- **key：value**
+
+key即为抽取字段名，与传入的schema结构一致；value为对应的抽取结果。
 
 #### citations：抽取结果的详细信息，包含坐标位置
 
-- **key**：结构与value一致，不做额外平铺展开
-- **bounding_regions**：返回value对应的相对坐标，8个值的数组
-  - **page_number**：段落所在文件实际的页码，从1开始，有offset
-  - **text**：文本框所在区域的文字
-- **value**：当前key全部抽取结果
+- **key**：传入的抽取字段
+  - **value**：该字段抽取结果
+  - **bounding_regions**：返回value对应的相对坐标位置
+    - **page_number**：段落所在文件实际的页码，从1开始
+    - **text**：文本框所在区域的文字
+    - **position**：坐标，8个值的数组
 
 #### stamps：印章相关信息
 
@@ -320,5 +324,5 @@ key与传入的schema结构一致，value为对应的抽取结果。
 - **height**：文档页高度
 - **width**：文档页宽度
 - **angle**：图像的角度（可选值0, 90, 180, 270)
-- **status**：表示当前页的引擎输出状态，或者error_message
+- **status**：表示当前页的引擎输出状态，success或者error_message
 - **durations**：当前页解析总耗时(毫秒)
