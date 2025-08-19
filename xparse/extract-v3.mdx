@@ -1,0 +1,429 @@
+---
+title: "文档抽取v3"
+---
+
+## 概述：文档抽取v3
+
+文档抽取v3是TextIn xParse推出的全新版本文档抽取API。在文档抽取v3中，您可以自定义指定抽取架构（JSON schema）以及抽取架构中的字段和类型，系统会根据您的抽取架构进行字段抽取。如果您对文档抽取输出的结果字段类型有要求，例如区分金额和文本，那么文档抽取v3会非常有用。
+
+另外，文档抽取v3提供了更智能的泛化性和即用性。通过定义JSON schema，您可以从多种样式的表单或文档中提取统一的结构化信息，并根据字段设定的标准类型完成自动格式转换。您可以根据下游系统的字段和结构要求来定义抽取JSON schema，以实现API"即插即用"的效果。例如，您想要完成文档数据自动化录入系统；文档抽取v3可以帮助您小时级完成从复杂文档到系统结构化数据的无缝衔接。
+
+## 文档抽取v3配置
+
+### JSON schema 结构示例
+
+在文档抽取v3中最核心的配置是JSON schema，其结构示例如下：
+
+```json
+  "schema": {
+    "type": "object",
+    "properties": {
+      "storeName": {
+        "type": ["string", "null"],
+        "description": "门店全称，需包含品牌与门店名称"
+      },
+      "isStoreName": {
+        "type": ["enum", "null"],
+        "enum": ["Y", "N"],
+        "description": "提取的门店名称与“XX省XX市XX影城XX店”75% 及以上相似则为 Y，否则 N"
+      },
+      "orderNo": {
+        "type": ["string", "null"],
+        "description": "电影票订单号：取电影名称右侧的数字串"
+      },
+      "amount": {
+        "type": ["number", "null"],
+        "description": "订单实收 / 实付金额或票价，纯数值"
+      },
+      "time": {
+        "type": ["date", "null"],
+        "description": "票据发生时间，格式 yyyy-MM-dd HH:mm:ss"
+      },
+      "isGood": {
+        "type": ["enum", "null"],
+        "enum": ["Y", "N"],
+        "description": "是否存在商品或电影信息：有为 Y，无为 N"
+      }
+    },
+    "required": [
+      "storeName",
+      "isStoreName",
+      "orderNo",
+      "amount",
+      "time",
+      "isGood"
+    ]
+  }
+```
+
+### JSON schema 字段说明和抽取指南
+
+- **schema**：完整的schema数据结构
+  - **type**：schema的类型，固定为"object"
+  - **properties**：抽取字段的集合
+    - **name**：要抽取的字段名称
+      - **type**：要抽取的字段类型
+      - **enum**：当type为"enum"时，该字段表示抽取字段的枚举值
+      - **description**：要抽取的字段描述
+  - **required**：抽取字段的顺序要求，用字段名称排序表示
+
+抽取字段property是一个key-value形式的键值对。其key在properties中被定义和使用，包括name、type、description这三个关键字段要素，其value则是实际抽取所得到的结果。
+
+在定义要抽取的数据时，您需要为每个字段提供一个名称，以及确定该字段的类型。您还可以添加可选的字段描述为大模型提供更多的上下文。字段名称和字段描述均可作为抽取指导，帮助文档抽取v3准确了解需要从文档中查找和提取哪些信息。字段名称和描述越具体、越具有描述性，文档抽取v3就越能准确地识别和抽取文档中的正确数据。
+
+### JSON schema 支持的字段数量
+
+为了获得最佳性能，保障抽取的精度和速度，在JSON schema中包含的最低层级字段数量限制总计不应超过100个。
+
+### JSON schema 支持的字段类型
+
+- string：字符串
+- number：数字
+- integer：整数
+- boolean：布尔值
+- date：日期
+- currency：货币
+- enum：枚举
+- object：对象。对象内可以包含以下类型：字符串、数字、整数、布尔值、日期、货币、枚举。
+- array：数组。数组内可以包含以下类型：字符串、数字、整数、布尔值、日期、货币、枚举、对象。
+
+请注意，在JSON schema中array、object、enum类型均支持层级嵌套结构，以便于抽取如表格类的数据或根据枚举值进行判断。但目前文档抽取v3仅支持最多不超过3级的嵌套，例如array-object-string。
+
+## 使用文档抽取v3 API：快速启动
+
+调用[**API**](https://docs.landing.ai/api-reference/tools/agentic-document-extraction)即可提取数据。首先创建要抽取字段的 JSON schema，之后您可以在API调用中使用它。
+
+您也可以参考以下文件和输入输出示例，快速验证并将文档抽取v3接入到您的系统和应用流程中。
+
+#### 示例文件
+
+<Tip>
+  这里为您提供了一份Textin官方示例图片，您可以点击下载使用：[文档抽取png示例.png](https://web-api.textin.com/open/image/download?filename=54efc36a05cf475aa6b39137b0717726)
+
+  ![Sample Image Pn](/images/sample_image.webp)
+</Tip>
+
+#### 输入示例
+
+```python
+{
+    "file": {
+        "file_url": "https://web-api.textin.com/open/image/download?filename=54efc36a05cf475aa6b39137b0717726"
+    },
+    "schema": {
+        "type": "object",
+        "properties": {
+            "商品": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": ""
+            },
+            "商品列表": {
+                "type": "array",
+                "description": "",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "名称": {
+                            "type": ["string","null"],
+                            "description": ""
+                        },
+                        "价格": {
+                            "type": ["string","null"],
+                            "description": ""
+                        }
+                    },
+                    "required": ["名称","价格"]
+                }
+            }
+        },
+        "required": [
+            "商品",
+            "商品列表"
+        ]
+        },
+    "parse_options":{
+        "crop_dewarp":1,
+        "get_image":"both"
+    },
+    "extract_options":{
+        "generate_citations": true,
+        "stamp": true
+    }
+}
+```
+
+#### 输出示例
+
+```json expandable
+{
+    "success_count": 1,
+    "version": "v1.1.8",
+    "extracted_schema": {
+        "storeName": "永辉（95JN 惠州港惠新天地商业广场店）",
+        "isStoreName": "N",
+        "orderNo": "6206510310006163",
+        "amount": "79.04",
+        "time": "2025-07-21 18:29:13",
+        "isGood": "Y",
+        "使用方法": "打开盖子挤出适当料体，点涂在面颊处使用手指或粉扑均匀拍开即可"
+    },
+    "citations": {
+        "storeName": {
+            "value": "永辉（95JN 惠州港惠新天地商业广场店）",
+            "bounding_regions": [
+                {
+                    "page_number": 1,
+                    "text": "永辉（95JN 惠州港惠新天地商业广场店）欢迎您",
+                    "position": [
+                        0.267578, 
+                        0.222168, 
+                        0.679199, 
+                        0.222168, 
+                        0.679199, 
+                        0.255127, 
+                        0.267578, 
+                        0.255127
+                    ],
+                }
+            ],
+            "confidence": "high"
+        },
+        "使用方法": 
+        {
+            "value": "打开盖子挤出适当料体，点涂在面颊处使用手指或粉扑均匀拍开即可",
+            "bounding_regions": [
+                {
+                    "page_number": 0,
+                    "text": "打开盖子挤出适当料体，点涂在面颊处使用手指或粉扑均匀拍",
+                    "position": [
+                        0.454007, 
+                        0.404373, 
+                        0.773932, 
+                        0.404373, 
+                        0.773932, 
+                        0.414137, 
+                        0.454007, 
+                        0.414137
+                    ]
+                },
+                {
+                    "page_number": 0,
+                    "text": "开即可",
+                    "position": [
+                        0.323355, 
+                        0.411165, 
+                        0.356720, 
+                        0.411165, 
+                        0.356720, 
+                        0.421779, 
+                        0.323355, 
+                        0.421779
+                    ]
+                }
+            ],
+            "confidence": "high"
+        },
+        //其他key
+     },
+    "usage": {
+        "prompt_tokens": 938,
+        "completion_tokens": 91,
+        "total_tokens": 1029
+    },
+    "pages": [
+        {
+            "height": 4096,
+            "image_id": "",
+            "page_number": 1,
+            "status": "Success",
+            "width": 3072,
+            "angle": 0,
+            "durations": 1090.075439453125
+        }
+    ],
+    "stamps": [
+    {
+        "color": "红色",
+        "position": [
+            0.323355, 
+            0.411165, 
+            0.356720, 
+            0.411165, 
+            0.356720, 
+            0.421779, 
+            0.323355, 
+            0.421779
+        ],
+        "stamp_shape": "方章",
+        "type": "其他",
+        "value": "",
+        "page_number": 0
+    }
+    ],
+}
+```
+
+## 返回结果说明
+
+### 常规字段说明
+
+- x_request_id：该请求的唯一标识。
+- code：错误码，200表示成功。详情见[**快速启动-错误码说明**](https://docs.textin.com/xparse/extract-quickstart)。
+- message：错误信息，成功时为”success”。
+- version：版本号，例如”v1.6.5”。
+
+### 主要结果说明：result对象
+
+文档抽取v3会在返回结果的result对象中包含以下关键信息。
+
+#### extracted_schema：key-value形式的抽取结果
+
+key与传入的schema结构一致，value为对应的抽取结果。
+
+#### citations：抽取结果的详细信息，包含坐标位置
+
+- **key**：结构与value一致，不做额外平铺展开
+- **bounding_regions**：返回value对应的相对坐标，8个值的数组
+  - **page_number**：段落所在文件实际的页码，从1开始，有offset
+  - **text**：文本框所在区域的文字
+- **value**：当前key全部抽取结果
+
+#### stamps：印章相关信息
+
+- **stamps**：印章识别结果
+  - **color**：当前印章颜色
+    - 红色
+    - 蓝色
+    - 黑色
+    - 其他
+  - **position**：印章的坐标信息
+  - **stamp_shape**：当前印章形状
+    - 圆章
+    - 椭圆章
+    - 方章
+    - 三角章
+    - 菱形章
+    - 其他
+  - **type**：当前印章类型
+    - 公章
+    - 个人章
+    - 专用章
+    - 其他
+    - 合同专用章
+    - 财务专用章
+    - 发票专用章
+    - 业务专用章
+  - **value**：印章的文本内容
+
+#### pages：页面相关信息
+
+- **page_number**：当前页码
+- **image_id**：当前页图片id
+- **height**：文档页高度
+- **width**：文档页宽度
+- **angle**：图像的角度（可选值0, 90, 180, 270)
+- **status**：表示当前页的引擎输出状态，或者error_message
+- **durations**：当前页解析总耗时(毫秒)
+
+## 额外的用法：文档分类
+
+使用JSON shcema定义抽取架构为文档抽取API拓展了额外的用法，例如您可以根据文档类型对文档进行分类并分别抽取数据。
+
+假设您在一家金融机构工作，需要从贷款申请表中抽取一组数据，并从损益表中抽取另一组数据。您可以为每个文档分配一个类别，然后根据该文档的类别分别使用不同的抽取架构抽取数据。
+
+在使用文档抽取v3时，您可以使用`enum`类型字段来标识文档类型，并通过2次调用API实现“先分类，再抽取”的效果。
+
+```json
+  "schema": {
+    "type": "object",
+    "properties": {
+      "document_type": {
+        "type": ["enum", "null"],
+        "enum": ["Document Type 1", "Document Type 2", "Document Type 3"],
+        "description": "文档分类，如果XXX则为Document Type 1，如果XXX则为Document Type 2，如果XXX则为Document Type 3"
+      }
+    },
+    "required": [
+      "document_type"
+    ]
+  }
+```
+
+### 示例代码：对文档进行分类并分别抽取
+
+假设您需要对三种类型的文件做抽取：护照、发票和其他。您需要抽取的字段数据取决于文件类型。以下示例代码向您展示如何定义文档类型、每种文档类型要抽取的字段，以及实际对文档进行分类和抽取的代码。
+
+```python
+import requests
+import json
+
+VA_API_KEY = <YOUR_VA_API_KEY>  # Replace with your API key
+headers = {"Authorization": f"Basic {VA_API_KEY}"}
+url = "https://api.va.landing.ai/v1/tools/agentic-document-analysis"
+
+base_pdf_path = "your_pdf_path"  # Replace with the path to the file
+pdf_name = "filename.pdf"  # Replace the file
+pdf_path = f"{base_pdf_path}/{pdf_name}"
+
+# Define document types
+class_schema = {
+    "type": "object",
+    "properties": {
+        "document_type": {"type": "string", "enum": ["Passport", "Invoice", "Other"]}
+    },
+    "required": ["document_type"],
+}
+
+# First request: classification
+with open(pdf_path, "rb") as f:
+    files = [("pdf", (pdf_name, f, "application/pdf"))]
+    payload = {"fields_schema": json.dumps(class_schema)}
+    classification_response = requests.post(
+        url, headers=headers, files=files, data=payload
+    )
+
+classification = classification_response.json()["data"]["extracted_schema"][
+    "document_type"
+]
+
+# Define schema based on classification
+if classification == "Passport":
+    schema = {
+        "type": "object",
+        "properties": {
+            "Given Names": {"type": "string"},
+            "Date of birth": {"type": "string"},
+            "ID_number": {"type": "number"},
+            "Passport Number": {"type": "string"},
+        },
+        "required": ["Given Names", "Date of birth", "ID_number", "Passport Number"],
+    }
+elif classification == "Invoice":
+    schema = {
+        "type": "object",
+        "properties": {
+            "Bill to": {"type": "string"},
+            "Invoice Number": {"type": "string"},
+            "Invoice Date": {"type": "string"},
+            "Due Date": {"type": "string"},
+            "Total": {"type": "string"},
+        },
+        "required": ["Bill to", "Invoice Number", "Invoice Date", "Due Date", "Total"],
+    }
+else:
+    print("Document type is 'Other'. No extraction schema defined.")
+    exit()
+
+# Second request: extraction
+with open(pdf_path, "rb") as f:
+    files = [("pdf", (pdf_name, f, "application/pdf"))]
+    payload = {"fields_schema": json.dumps(schema)}
+    response = requests.post(url, headers=headers, files=files, data=payload)
+
+output_data = response.json()["data"]
+extracted_info = output_data["extracted_schema"]
+print(extracted_info)
+```
