@@ -15,45 +15,40 @@ title: "文档抽取v3"
 在文档抽取v3中最核心的配置是JSON schema，其结构示例如下：
 
 ```json
-  "schema": {
-    "type": "object",
-    "properties": {
-      "storeName": {
-        "type": ["string", "null"],
-        "description": "门店全称，需包含品牌与门店名称"
-      },
-      "isStoreName": {
-        "type": ["enum", "null"],
-        "enum": ["Y", "N"],
-        "description": "提取的门店名称与“XX省XX市XX影城XX店”75% 及以上相似则为 Y，否则 N"
-      },
-      "orderNo": {
-        "type": ["string", "null"],
-        "description": "电影票订单号：取电影名称右侧的数字串"
-      },
-      "amount": {
-        "type": ["number", "null"],
-        "description": "订单实收 / 实付金额或票价，纯数值"
-      },
-      "time": {
-        "type": ["date", "null"],
-        "description": "票据发生时间，格式 yyyy-MM-dd HH:mm:ss"
-      },
-      "isGood": {
-        "type": ["enum", "null"],
-        "enum": ["Y", "N"],
-        "description": "是否存在商品或电影信息：有为 Y，无为 N"
-      }
-    },
-    "required": [
-      "storeName",
-      "isStoreName",
-      "orderNo",
-      "amount",
-      "time",
-      "isGood"
-    ]
-  }
+    "schema": {
+        "type": "object",
+        "properties": {
+            "商品": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": ""
+            },
+            "商品列表": {
+                "type": "array",
+                "description": "",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "名称": {
+                            "type": ["string","null"],
+                            "description": ""
+                        },
+                        "价格": {
+                            "type": ["string","null"],
+                            "description": ""
+                        }
+                    },
+                    "required": ["名称","价格"]
+                }
+            }
+        },
+        "required": [
+            "商品",
+            "商品列表"
+        ]
+        }
 ```
 
 ### JSON schema 字段说明和抽取指南
@@ -73,7 +68,7 @@ title: "文档抽取v3"
 
 ### JSON schema 支持的字段数量
 
-为了获得最佳性能，保障抽取的精度和速度，在JSON schema中包含的最低层级字段数量限制总计不应超过100个。
+为了获得最佳性能，保障抽取的精度和速度，在JSON schema中包含的最低层级字段数量限制总计应不超过100个。
 
 ### JSON schema 支持的字段类型
 
@@ -91,11 +86,11 @@ title: "文档抽取v3"
 
 ## 使用文档抽取v3 API：快速启动
 
-调用[**API**](https://docs.landing.ai/api-reference/tools/agentic-document-extraction)即可提取数据。首先创建要抽取字段的 JSON schema，之后您可以在API调用中使用它。
+调用[**API**](https://docs.textin.com/api-reference/endpoint/extract)即可提取数据。首先创建要抽取字段的 JSON schema，之后您可以在API调用中使用它。
 
 您也可以参考以下文件和输入输出示例，快速验证并将文档抽取v3接入到您的系统和应用流程中。
 
-#### 示例文件
+### 示例文件
 
 <Tip>
   这里为您提供了一份Textin官方示例图片，您可以点击下载使用：[文档抽取png示例.png](https://web-api.textin.com/open/image/download?filename=54efc36a05cf475aa6b39137b0717726)
@@ -103,7 +98,7 @@ title: "文档抽取v3"
   ![Sample Image Pn](/images/sample_image.webp)
 </Tip>
 
-#### 输入示例
+### 输入示例
 
 ```python
 {
@@ -155,9 +150,9 @@ title: "文档抽取v3"
 }
 ```
 
-#### 输出示例
+### 输出示例
 
-```json expandable
+```json
 {
     "success_count": 1,
     "version": "v1.1.8",
@@ -327,103 +322,3 @@ key与传入的schema结构一致，value为对应的抽取结果。
 - **angle**：图像的角度（可选值0, 90, 180, 270)
 - **status**：表示当前页的引擎输出状态，或者error_message
 - **durations**：当前页解析总耗时(毫秒)
-
-## 额外的用法：文档分类
-
-使用JSON shcema定义抽取架构为文档抽取API拓展了额外的用法，例如您可以根据文档类型对文档进行分类并分别抽取数据。
-
-假设您在一家金融机构工作，需要从贷款申请表中抽取一组数据，并从损益表中抽取另一组数据。您可以为每个文档分配一个类别，然后根据该文档的类别分别使用不同的抽取架构抽取数据。
-
-在使用文档抽取v3时，您可以使用`enum`类型字段来标识文档类型，并通过2次调用API实现“先分类，再抽取”的效果。
-
-```json
-  "schema": {
-    "type": "object",
-    "properties": {
-      "document_type": {
-        "type": ["enum", "null"],
-        "enum": ["Document Type 1", "Document Type 2", "Document Type 3"],
-        "description": "文档分类，如果XXX则为Document Type 1，如果XXX则为Document Type 2，如果XXX则为Document Type 3"
-      }
-    },
-    "required": [
-      "document_type"
-    ]
-  }
-```
-
-### 示例代码：对文档进行分类并分别抽取
-
-假设您需要对三种类型的文件做抽取：护照、发票和其他。您需要抽取的字段数据取决于文件类型。以下示例代码向您展示如何定义文档类型、每种文档类型要抽取的字段，以及实际对文档进行分类和抽取的代码。
-
-```python
-import requests
-import json
-
-VA_API_KEY = <YOUR_VA_API_KEY>  # Replace with your API key
-headers = {"Authorization": f"Basic {VA_API_KEY}"}
-url = "https://api.va.landing.ai/v1/tools/agentic-document-analysis"
-
-base_pdf_path = "your_pdf_path"  # Replace with the path to the file
-pdf_name = "filename.pdf"  # Replace the file
-pdf_path = f"{base_pdf_path}/{pdf_name}"
-
-# Define document types
-class_schema = {
-    "type": "object",
-    "properties": {
-        "document_type": {"type": "string", "enum": ["Passport", "Invoice", "Other"]}
-    },
-    "required": ["document_type"],
-}
-
-# First request: classification
-with open(pdf_path, "rb") as f:
-    files = [("pdf", (pdf_name, f, "application/pdf"))]
-    payload = {"fields_schema": json.dumps(class_schema)}
-    classification_response = requests.post(
-        url, headers=headers, files=files, data=payload
-    )
-
-classification = classification_response.json()["data"]["extracted_schema"][
-    "document_type"
-]
-
-# Define schema based on classification
-if classification == "Passport":
-    schema = {
-        "type": "object",
-        "properties": {
-            "Given Names": {"type": "string"},
-            "Date of birth": {"type": "string"},
-            "ID_number": {"type": "number"},
-            "Passport Number": {"type": "string"},
-        },
-        "required": ["Given Names", "Date of birth", "ID_number", "Passport Number"],
-    }
-elif classification == "Invoice":
-    schema = {
-        "type": "object",
-        "properties": {
-            "Bill to": {"type": "string"},
-            "Invoice Number": {"type": "string"},
-            "Invoice Date": {"type": "string"},
-            "Due Date": {"type": "string"},
-            "Total": {"type": "string"},
-        },
-        "required": ["Bill to", "Invoice Number", "Invoice Date", "Due Date", "Total"],
-    }
-else:
-    print("Document type is 'Other'. No extraction schema defined.")
-    exit()
-
-# Second request: extraction
-with open(pdf_path, "rb") as f:
-    files = [("pdf", (pdf_name, f, "application/pdf"))]
-    payload = {"fields_schema": json.dumps(schema)}
-    response = requests.post(url, headers=headers, files=files, data=payload)
-
-output_data = response.json()["data"]
-extracted_info = output_data["extracted_schema"]
-print(extracted_info)
-```
