@@ -25,24 +25,69 @@ description: "Description of your new file."
 2. 上传一个文件，或打开一个已存在的文件；
 3. 切换到**智能抽取**tab，并切换到**字段模式**；
 
-   ![image.png](/images/image.png)
+   ![Extract V3 Schema Empty Jp](/images/extract-v3-schema-empty.jpg)
 4. 在**抽取配置**中，可以添加您想抽取的字段，如 ”商品名称“；
 5. 选择**字段类型**下拉框，可以设定您所期望返回的字段类型，详情请参考[支持的字段类型](https://docs.textin.com/xparse/extract-v3#json-schema-%E6%94%AF%E6%8C%81%E7%9A%84%E5%AD%97%E6%AE%B5%E7%B1%BB%E5%9E%8B)；
 6. 为字段增加一个**字段描述**（可选）；
 7. 点击**添加字段**按钮，可以新加一个字段；
 8. 重复以上步骤，直到添加完您想抽取的全部字段；
+
+   <img
+     src="/images/extract-v3-schema-edit.jpg"
+     alt="Extract V3 Schema Edit Jp"
+     title="Extract V3 Schema Edit Jp"
+     className="mx-auto"
+     style={{ width:"100%" }}
+   />
 9. 点击**抽取**按钮，配置面板会收起，并自动切换到抽取结果面板，您可以在结果面板查看所有的内容。
 
 ## 验证抽取效果
 
+1. 抽取完成后，会展示抽取结果面板，您可以点击每个抽取结果，左侧文件预览窗口会高亮显示对应的文本框；
+
+   ![Extract V3 Schema Result Panel Jp](/images/extract-v3-schema-result-panel.jpg)
+2. 抽取结果默认显示**预览**面板，您也可以切换到**JSON**面板查看相应的内容；
+
+   <img
+     src="/extract-v3-json-preview.jpg"
+     alt="Extract V3 Json Preview Jp"
+     title="Extract V3 Json Preview Jp"
+     className="mx-auto"
+     style={{ width:"100%" }}
+   />
+3. 您可以展开下方抽取配置面板，进一步调整schema后再抽取，直到抽取结果符合预期。
+
 ## 导出Schema
+
+1. 在**抽取配置**面板，点击**导出配置**，可将当前schema对应的JSON文件下载到本地；
+2. 在后续API调用时，通过该Schema，就能保证每次抽取的结果符合格式要求。
 
 ## 常见抽取元素的配置方式
 
 ### 抽取单值
 
+当待抽取的内容在文件中仅会有一个值时，推荐单值抽取，使用string, number, integer, boolean, enum表示。
+
+![Extract V3 Mono Key Jp](/images/extract-v3-mono-key.jpg)
+
 ### 抽取多值
+
+当待抽取的内容为一个key，但该key有多个值时，推荐多值抽取，使用array/string，array/number等表示。
 
 ### 抽取表格
 
-### 抽取多个表格
+当待抽取的内容有多条数据，且每条数据也有多个值时，推荐表格抽取，使用array/object加单值字段嵌套表示。
+
+![Extract V3 Schema Table Sample Jp](/images/extract-v3-schema-table-sample.jpg)
+
+如果文件中存在多个表格，可以添加多个array/object来定义。
+
+![Extract V3 Schema Multi Table Jp](/images/extract-v3-schema-multi-table.jpg)
+
+### 抽取数据对象
+
+## 一些schema示例
+
+商铺小票
+
+银行回单
