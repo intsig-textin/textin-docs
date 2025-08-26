@@ -10,7 +10,7 @@ title: "文档抽取v3"
 
 您可以从多种样式的表单或文档中提取统一的结构化信息，并根据字段设定的标准类型完成自动格式转换。您可以根据下游系统的字段和结构要求来定义抽取JSON schema，以实现API"即插即用"的效果。例如，当您想要完成文档数据自动化录入系统时，文档抽取v3可以帮助您小时级完成从复杂文档到系统结构化数据的无缝衔接。
 
-<Accordion title="新增功能" icon="sparkles">
+<Accordion title="新增功能" defaultOpen icon="sparkles">
   1. 支持更灵活的file传参，兼容`file_url`和`file_base64`
   2. 支持设定字段类型，包括常见的文本、数字、日期等格式
   3. 支持抽取多个表格，且限定抽取范围
@@ -96,7 +96,7 @@ title: "文档抽取v3"
 
 | **字段**                | **字段类型**  | **说明**                          |
 | --------------------- | --------- | ------------------------------- |
-| file                  | `object`  |                                 |
+| file                  | `object`  | 必填，传入需要处理的文件内容                  |
 | -- file_url           | `string`  | 待处理文件的url链接，与file_base64二选一     |
 | -- file_base64        | `string`  | 待处理文件的base64编码，与file_url二选一     |
 | -- file_name          | `string`  | 用于前端展示的文件名，可选                   |
@@ -104,6 +104,10 @@ title: "文档抽取v3"
 | extract_options       | `object`  | 用于控制更多抽取的高级功能                   |
 | -- generate_citations | `boolean` | 是否生成坐标，默认为`true`                |
 | -- stamp              | `boolean` | 是否开启印章识别，默认为`true`              |
+
+<ParamField path="param" type="string">
+  Enter a description
+</ParamField>
 
 ## 使用文档抽取v3 API：快速启动
 

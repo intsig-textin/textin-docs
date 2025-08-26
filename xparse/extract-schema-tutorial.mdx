@@ -1,0 +1,48 @@
+---
+title: "Schema抽取介绍"
+description: "Description of your new file."
+---
+
+为了创建一个正确可用的schema，我们提供了一个Web配置界面，您可以按以下步骤处理：
+
+<Steps>
+  <Step title="创建Schema">
+    使用Web界面从0开始创建一个schema。
+  </Step>
+  <Step title="验证抽取效果">
+    使用配置好的schema进行抽取，验证结果是否符合您的预期。
+  </Step>
+  <Step title="导出Schema">
+    当schema调试好后，您可以导出为json文件，以便在api调用时使用。
+  </Step>
+</Steps>
+
+## 创建Schema
+
+您可以通过我们的Web配置界面来创建抽取schema。
+
+1. 登录并进入到TextIn xParse智能文档解析 [工作台](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown)；
+2. 上传一个文件，或打开一个已存在的文件；
+3. 切换到**智能抽取**tab，并切换到**字段模式**；
+
+   ![image.png](/images/image.png)
+4. 在**抽取配置**中，可以添加您想抽取的字段，如 ”商品名称“；
+5. 选择**字段类型**下拉框，可以设定您所期望返回的字段类型，详情请参考[支持的字段类型](https://docs.textin.com/xparse/extract-v3#json-schema-%E6%94%AF%E6%8C%81%E7%9A%84%E5%AD%97%E6%AE%B5%E7%B1%BB%E5%9E%8B)；
+6. 为字段增加一个**字段描述**（可选）；
+7. 点击**添加字段**按钮，可以新加一个字段；
+8. 重复以上步骤，直到添加完您想抽取的全部字段；
+9. 点击**抽取**按钮，配置面板会收起，并自动切换到抽取结果面板，您可以在结果面板查看所有的内容。
+
+## 验证抽取效果
+
+## 导出Schema
+
+## 常见抽取元素的配置方式
+
+### 抽取单值
+
+### 抽取多值
+
+### 抽取表格
+
+### 抽取多个表格
