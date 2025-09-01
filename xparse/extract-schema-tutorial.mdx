@@ -65,6 +65,36 @@ description: "Description of your new file."
 1. 在**抽取配置**面板，点击**导出配置**，可将当前schema对应的JSON文件下载到本地；
 2. 在后续API调用时，通过该Schema，就能保证每次抽取的结果符合格式要求。
 
+使用schema文件，可以参考以下代码示例：
+
+```python
+import requests
+import json
+url = "https://api.textin.com/ai/service/v3/entity_extraction"
+schema_file = '/Downloads/商铺小票.json'		#您所保存的实际schema文件路径
+payload = {
+    "file": {
+        "file_url": "https://web-api.textin.com/open/image/download?filename=54efc36a05cf475aa6b39137b0717726"
+    },
+	"schema":json.loads(open(schema_file).read()), 		#读入schema文件
+    "parse_options":{
+        "crop_dewarp":1,
+        "get_image":"both"
+    },
+    "extract_options":{
+        "generate_citations": True,
+        "stamp": True
+    }
+}
+headers = {
+    "x-ti-app-id": "<app-id>",    #需替换为你的x-ti-app-id
+    "x-ti-secret-code": "<secret-code>",    #需替换为你的x-ti-secret-code
+    "Content-Type": "application/json"
+}
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())
+```
+
 ## 常见抽取元素的配置方式
 
 ### 抽取单值
