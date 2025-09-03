@@ -108,12 +108,9 @@ components:
                 - string
                 - number
                 - integer
-                - boolean
                 - array
                 - object
                 - enum
-                - date
-                - currency
               example: "string"
             description:
               type: string
