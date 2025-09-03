@@ -54,9 +54,6 @@ paths:
                       description: |
                         用于前端展示的文件名，可选
                       example: "document.pdf"
-                  anyOf:
-                    - required: ["file_base64"]
-                    - required: ["file_url"]
                 schema:
                   $ref: "#/components/schemas/SchemaDefinition"
                 parse_options:
