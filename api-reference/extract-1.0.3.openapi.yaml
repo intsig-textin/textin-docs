@@ -172,6 +172,11 @@ components:
           enum: [0, 1, 2]
           default: 0
           example: 0
+        table_flavor:
+          type: string
+          default: html
+          enum: [md, html, none]
+
 
     ExtractOptions:
       type: object
@@ -201,18 +206,34 @@ components:
           description: |
             错误码
             - 200: OK
-            - 500: 服务器内部错误
-            - 40303: 文件类型不支持
-            - 40305: 识别文件未上传
+            - 500: Engine failed (服务器内部错误)
+            - 50012: LLM Engine Faield (大模型引擎错误）
+            - 50011: LLM Connection Failed （连接大模型错误）
+            - 40305: File not uploaded (识别文件未上传)
+            - 40424: Page number out of range (页面设置超出文件范围)
+            - 40425: The input file format is not supported (输入文件格式不支持)
+            - 40004: Parameter error (参数错误，请检查入参)
           enum:
             - 200
             - 500
-            - 40303
+            - 50012
+            - 50011
             - 40305
+            - 40424
+            - 40425
+            - 40004
           example: 200
         message:
           type: string
-          description: 错误信息
+          description: 错误信息 |
+            - 成功
+            - 服务器内部错误
+            - 大模型引擎错误 (重复吐词等)
+            - 连接大模型错误 (无法访问大模型服务)
+            - 识别文件未上传 
+            - 页面设置超出文件范围
+            - 输入文件格式不支持
+            - 参数错误，请检查入参
           example: "success"
         version:
           type: string
