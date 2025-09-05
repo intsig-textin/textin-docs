@@ -225,7 +225,8 @@ components:
           example: 200
         message:
           type: string
-          description: 错误信息 |
+          description: |
+            错误信息
             - 成功
             - 服务器内部错误
             - 大模型引擎错误 (重复吐词等)
