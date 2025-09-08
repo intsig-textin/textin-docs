@@ -20,11 +20,11 @@ paths:
       summary: general information extration
       operationId: llm_uie_v3
       description: |
-        智能文档识别（抽取）-API文档 v1.0.3
+        智能抽取API已更新至v3， 如需查看旧版API请[点击](https://www.textin.com/document/legacy/open_kie_vlm_engine)
       requestBody:
         description: |
           支持的文件格式：png, jpg, jpeg, pdf, bmp, tiff, webp, doc, docx, html, mhtml, xls, xlsx, csv, ppt, pptx, txt, ofd；
-          
+
           支持schema模式的结构化信息抽取，通过定义字段结构进行精确抽取。
         required: true
         content:
@@ -70,7 +70,7 @@ paths:
                 allOf:
                   - $ref: "#/components/schemas/BaseResponse"
                   - $ref: "#/components/schemas/ExtractionResult"
-    
+
 components:
   securitySchemes:
     AppIdAuth:
@@ -177,7 +177,6 @@ components:
           default: html
           enum: [md, html, none]
 
-
     ExtractOptions:
       type: object
       description: 高级抽取控制
@@ -267,7 +266,7 @@ components:
               type: object
               description: |
                 结构化抽取结果，根据用户定义的schema进行抽取的简化键值对结构
-                
+
                 由于使用结构化抽取，具体的字段名称和数据类型由用户的schema决定，无法预先确定
               additionalProperties: true
               example:
@@ -282,9 +281,9 @@ components:
               type: object
               description: |
                 带坐标信息的抽取结果，包含详细的位置信息和边界框数据，用于高级处理场景
-                
+
                 由于使用结构化抽取，具体的字段名称无法预先确定，但每个字段值都遵循统一的结构格式，包含抽取值、页码信息和详细的坐标数据
-              additionalProperties: 
+              additionalProperties:
                 type: object
                 allOf:
                   - $ref: "#/components/schemas/CitationItem"
@@ -338,7 +337,7 @@ components:
       required:
         - value
         - bounding_regions
-      properties: 
+      properties:
         value:
           description: 字段的抽取值
           type: string
