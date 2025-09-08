@@ -295,11 +295,9 @@ components:
                     - page_number: 1
                       position: [137, 599, 1129, 599, 1129, 625, 182, 625]
                       text: "童装 Looney Tunes UT（短袖T恤）"
-                  confidence: "high"
                 民族:
                   value: null
                   bounding_regions: []
-                  confidence: "high"
             pages:
               type: array
               description: 文档每页的处理信息
@@ -340,7 +338,6 @@ components:
       required:
         - value
         - bounding_regions
-        - confidence
       properties: 
         value:
           description: 字段的抽取值
@@ -352,11 +349,6 @@ components:
           description: 字段的边界框信息
           items:
             $ref: "#/components/schemas/BoundingRegion"
-        confidence:
-          type: string
-          description: 置信度等级
-          enum: ["high", "medium", "low"]
-          example: "high"
 
     BoundingRegion:
       type: object
