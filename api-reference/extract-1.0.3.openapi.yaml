@@ -47,7 +47,7 @@ paths:
                     file_url:
                       type: string
                       description: |
-                        待处理文件的url链接，与file_base64二选一
+                        待处理文件的url链接，与file_base64二选一，如果存在file_base64则会被忽略
                       example: "https://example.com/document.pdf"
                     file_name:
                       type: string
@@ -162,7 +162,7 @@ components:
             - objects
           default: objects
           example: "objects"
-        crop_image:
+        crop_dewarp:
           type: integer
           description: 是否进行切边矫正处理
           enum: [0, 1]
@@ -225,7 +225,7 @@ components:
             - 40004: Parameter error (参数错误，请检查入参）
             - 40007: 机器人不存在或未发布
             - 40008: 机器人未开通，请至市场开通后重试
-            - 40302: 上传文件大小不符，文件大小不超过 500M
+            - 40302: 上传文件大小不符，文件大小不超过 50M
             - 40303: 文件类型不支持，接口会返回实际检测到的文件类型，如“当前文件类型为.gif”
             - 40304: 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内
             - 40305: File not uploaded (识别文件未上传）
