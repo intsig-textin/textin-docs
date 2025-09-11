@@ -55,7 +55,19 @@ paths:
                         用于前端展示的文件名，可选
                       example: "document.pdf"
                 schema:
-                  $ref: "#/components/schemas/SchemaDefinition"
+                  type: object
+                  description: |
+                    抽取数据结构，参考[JSON schema说明](/xparse/extract-quickstart-v3#json-schema-结构说明和抽取指南)
+                  example: {
+                    type: "object",
+                    properties: {
+                      "商品": {
+                        type: "string",
+                        description: "商品名称"
+                      }
+                    },
+                    required: ["商品"]
+                  }
                 parse_options:
                   $ref: "#/components/schemas/ParseOptions"
                 extract_options:
@@ -63,7 +75,7 @@ paths:
 
       responses:
         "200":
-          description: JSON Data
+          description: 返回结果
           content:
             application/json:
               schema:
@@ -86,11 +98,12 @@ components:
   schemas:
     SchemaDefinition:
       type: object
-      description: 元数据结构定义
+      description: 抽取数据结构定义
       required:
-        - property
+        - type
+        - properties
       properties:
-        property:
+        properties:
           type: object
           description: 单个字段描述
           properties:
@@ -116,17 +129,17 @@ components:
           required: ["name", "type"]
         type:
           type: string
-          description: 描述整个property的类型
+          description: 字段类型
           example: "object"
         required:
           type: array
-          description: 用于固定当前层 property 的 key 顺序
+          description: 用于固定当前层 properties 的 key 顺序
           items:
             type: string
           example: ["商品名称", "价格"]
     ParseOptions:
       type: object
-      description: 解析阶段参数透传
+      description: 解析阶段参数
       additionalProperties: false
       properties:
         page_start:
@@ -203,38 +216,52 @@ components:
         code:
           type: integer
           description: |
-            错误码
-            - 200: OK
-            - 500: Engine failed (服务器内部错误)
-            - 50012: LLM Engine Faield (大模型引擎错误）
-            - 50011: LLM Connection Failed （连接大模型错误）
-            - 40305: File not uploaded (识别文件未上传)
-            - 40424: Page number out of range (页面设置超出文件范围)
-            - 40425: The input file format is not supported (输入文件格式不支持)
-            - 40004: Parameter error (参数错误，请检查入参)
+            状态码
+            - 200: Success (成功)
+            - 40101: x-ti-app-id 或 x-ti-secret-code 为空
+            - 40102: x-ti-app-id 或 x-ti-secret-code 无效，验证失败
+            - 40103: 客户端IP不在白名单
+            - 40003: 余额不足，请充值后再使用
+            - 40004: Parameter error (参数错误，请检查入参）
+            - 40007: 机器人不存在或未发布
+            - 40008: 机器人未开通，请至市场开通后重试
+            - 40302: 上传文件大小不符，文件大小不超过 500M
+            - 40303: 文件类型不支持，接口会返回实际检测到的文件类型，如“当前文件类型为.gif”
+            - 40304: 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内
+            - 40305: File not uploaded (识别文件未上传）
+            - 40306: qps超过限制
+            - 40400: 无效的请求链接，请检查链接是否正确
+            - 40424: Page number out of range (页面设置超出文件范围）
+            - 40425: The input file format is not supported (输入文件格式不支持）
+            - 500: Engine failed (服务器内部错误）
+            - 50011: LLM Connection Failed （访问大模型超时）
+            - 50012: LLM Engine Faield (大模型引擎错误）     
           enum:
             - 200
-            - 500
-            - 50012
-            - 50011
+            - 40101
+            - 40102
+            - 40103
+            - 40003
+            - 40004
+            - 40007
+            - 40008
+            - 40302
+            - 40303
+            - 40304
             - 40305
+            - 40306
+            - 40400
             - 40424
             - 40425
-            - 40004
+            - 500
+            - 50011
+            - 50012
           example: 200
         message:
           type: string
           description: |
-            错误信息
-            - OK
-            - Engine failed
-            - LLM Connection Failed
-            - LLM Connection Failed
-            - File not uploaded
-            - Page number out of range
-            - The input file format is not supported
-            - Parameter error
-          example: "OK"
+            成功或错误信息
+          example: "Success"
         version:
           type: string
           description: 版本号
@@ -271,12 +298,6 @@ components:
               additionalProperties: true
               example:
                 商品: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
-                民族: null
-                商品列表-2:
-                  - 名称: "童装 Looney Tunes UT（短袖T恤）"
-                    类型: "童装"
-                  - 名称: "女装SUPIMA COTTON圆领T恤（短袖）"
-                    类型: "女装"
             citations:
               type: object
               description: |
@@ -293,10 +314,7 @@ components:
                   bounding_regions:
                     - page_number: 1
                       position: [137, 599, 1129, 599, 1129, 625, 182, 625]
-                      text: "童装 Looney Tunes UT（短袖T恤）"
-                民族:
-                  value: null
-                  bounding_regions: []
+                      text: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
             pages:
               type: array
               description: 文档每页的处理信息

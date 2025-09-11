@@ -3,7 +3,7 @@ title: "使用指南"
 description: ""
 ---
 
-为了创建一个正确可用的schema，我们提供了一个Web配置界面，您可以按以下步骤处理：
+为了创建一个正确可用的schema，我们提供了一个[Web配置](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown&tab=llmExtract)界面，您可以按以下步骤操作：
 
 <Steps>
   <Step title="上传文件" stepNumber={1}>
@@ -22,7 +22,7 @@ description: ""
 
 ## 创建Schema
 
-您可以通过我们的Web配置界面来创建抽取schema。
+您可以通过我们的[Web配置](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown&tab=llmExtract)界面来创建抽取schema。
 
 1. 登录并进入到TextIn xParse智能文档解析 [工作台](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown)；
 2. 上传一个文件，或打开一个已存在的文件；
@@ -47,7 +47,7 @@ description: ""
 
 ## 验证抽取效果
 
-1. 抽取完成后，会展示抽取结果面板，您可以点击每个抽取结果，左侧文件预览窗口会高亮显示对应的文本框；
+1. 抽取完成后，会展示抽取结果面板，您可以点击字段抽取结果，会在左侧原文件区域找到对应的坐标边界（高亮显示）；
 
    ![Extract V3 Schema Result Panel Jp](/images/extract-v3-schema-result-panel.jpg)
 2. 抽取结果默认显示**预览**面板，您也可以切换到**JSON**面板查看对应的结构化数据；
@@ -100,7 +100,7 @@ print(response.json())
 
 ### 抽取单值
 
-当待抽取的字段在文件中仅会有一个值时，推荐单值抽取，使用`string`, `number`, `integer`, `boolean`, `enum`类型。
+当待抽取的字段在文件中仅会有一个值时，推荐单值抽取，使用`string`, `number`, `integer`, `enum`类型。
 
 ![Extract V3 Mono Key Jp](/images/extract-v3-mono-key.jpg)
 

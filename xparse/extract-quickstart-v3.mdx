@@ -8,19 +8,19 @@ title: "快速启动"
 
 ## 概述
 
-TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档抽取中，您可以自定义抽取配置（JSON schema），并指定要抽取的字段和类型及字段描述，系统会根据您定义的配置进行抽取。如果您对文档抽取输出的结果字段类型有要求，例如区分文本和数字，那么文档抽取会非常有用。
+TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档抽取中，您可以自定义抽取配置（JSON schema），指定您要抽取的字段名称、类型和字段描述，系统会根据您定义的配置进行抽取。如果您对文档抽取输出的结果字段类型有要求，例如区分文本和数字，那么文档抽取会非常有用。
 
 通过定义JSON schema，文档抽取兼顾了定义字段的**灵活性**和输出结果的**稳定性**。
 
-您可以从多种样式的表单或文档中提取统一的结构化信息，并根据字段设定的标准类型完成自动格式转换。您可以根据下游系统的字段和结构要求来定义抽取JSON schema，以实现API"即插即用"的效果。例如，当您想要完成文档数据自动化录入系统时，文档抽取可以帮助您小时级完成从复杂文档到系统结构化数据的无缝衔接。
+您可以从多种样式的表单或文档中提取统一的结构化信息，并根据字段设定的标准类型完成自动格式转换。您可以根据下游系统的字段和结构要求来定义抽取JSON schema，以实现API"即插即用"的效果。例如，当您想要完成文档数据自动化录入系统时，文档抽取可以帮助您快速完成从复杂文档到系统结构化数据的无缝衔接。
 
 <Note>
   新增功能
 
-  1. 支持更灵活的file传参，兼容`file_url`和`file_base64`
+  1. 支持更灵活的上传文件传参方式，兼容`file_url`和`file_base64`
   2. 支持设定字段类型，包括常见的文本、数字、枚举等格式
   3. 支持抽取多个表格，且限定抽取范围
-  4. 支持通过参数关闭坐标信息返回，提升响应速度
+  4. 支持通过参数开关按需返回坐标信息，提升响应速度
 </Note>
 
 ## 文档抽取配置
@@ -67,17 +67,18 @@ TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档�
 }
 ```
 
-### JSON schema 字段说明和抽取指南
+### JSON schema 结构说明和抽取指南
 
-- **schema**：完整的schema数据结构
-  - **type**：schema的类型，最外层固定为`object`
-  - **properties**：抽取字段的集合
-    - **name**：要抽取的字段名称
-      - **type**：要抽取的字段类型，参考[支持的字段类型](#json-schema-支持的字段类型)列表
-      - **description**：要抽取的字段描述
-      - **enum**：当type为`enum`时，该字段表示抽取字段的枚举值列表
-      - **items**：当type为`array`时，该字段表示要抽取的列表中的字段集合，与`properties`类似
-  - **required**：指定抽取必要字段，其顺序表达了抽取输出的字段顺序，仅在type为`object`时需要。
+我们使用[JSON Schema](https://json-schema.org/)来定义要抽取的数据结构，在遵循 schema 规范的基础上，剔除了一些不必要的字段，文档抽取使用的 schema 字段如下：
+
+- **type**：schema的类型，最外层固定为`object`
+- **properties**：抽取字段的集合
+  - **name**：要抽取的字段名称
+    - **type**：要抽取的字段类型，参考[支持的字段类型](#json-schema-支持的字段类型)列表
+    - **description**：要抽取的字段描述
+    - **enum**：当type为`enum`时，该字段表示抽取字段的枚举值列表
+    - **items**：当type为`array`时，该字段表示要抽取的列表中的字段集合，与`properties`类似
+- **required**：指定抽取必要字段，其顺序表达了抽取输出的字段顺序，仅在type为`object`时需要。
 
 在定义要抽取的数据时，您需要为每个字段提供一个名称，以及确定该字段的类型。您还可以添加可选的字段描述为大模型提供更多的上下文，帮助文档抽取准确了解需要从文档中查找和提取哪些信息。字段名称和描述越具体、表义越明确，文档抽取就越能准确地识别和抽取文档中的正确数据。
 
@@ -87,10 +88,11 @@ TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档�
 - number：数字
 - integer：整数
 - enum：枚举
-- object：对象。对象内可以包含以下类型：字符串、数字、整数、枚举。
-- array：数组。数组内可以包含以下类型：字符串、数字、整数、枚举、对象。
+- object：对象。对象内可以包含以下类型：、string、number、integer、enum。
+- array：数组。数组内可以包含以下类型：string、number、integer、enum、object。
 
-请注意，在JSON schema中array、object类型均支持层级嵌套结构，以便于抽取如表格类的数据或根据枚举值进行判断。目前文档抽取仅支持最多**不超过3级**的嵌套。
+请注意，在JSON schema中array、object类型均支持层级嵌套结构，以便于抽取如表格或者具有多个属性的实体对象。目前文档抽取仅支持最多**不超过3级**的嵌套。
+type可以设置为字符串（如`"type": "string"`）或者包含null的数组（如`"type": ["string", "null"]`），即使type不带null，接口底层也会默认带上null，当抽取不到数据时，接口统一返回null值。
 
 ### JSON schema 支持的字段数量
 
@@ -112,7 +114,7 @@ TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档�
 ## 使用文档抽取 API：快速启动
 
 <Tip>
-  推荐使用我们的[在线Web平台](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown)快速创建和验证 schema 效果，使用方式请参考[使用指南](/extract-tutorial-v3)，之后您可以在[**API**](/api-reference/endpoint/extract-v3)调用中直接使用。
+  推荐使用我们的[在线Web平台](https://www.textin.com/console/recognition/robot_markdown?service=pdf_to_markdown)快速创建和验证 schema 抽取效果，页面使用方式请参考[使用指南](/extract-tutorial-v3)，之后您可以在[**API**](/api-reference/endpoint/extract-v3)调用中直接使用。
 </Tip>
 
 您也可以参考以下示例文件和示例代码，快速验证并将文档抽取接入到您的系统和应用流程中。
@@ -205,7 +207,7 @@ print(response.json())
 ```json
 {
   "code": 200,
-  "message": "success",
+  "message": "Success",
   "version": "v3.0.60",
   "duration": 8267,
   "x_request_id": "7596b8c9d2ddbc9924b66651e9efc174",
@@ -236,6 +238,7 @@ print(response.json())
           }
         ],
       }
+      // 商品列表...
     },
     "pages": [
       {
@@ -282,42 +285,67 @@ print(response.json())
 ### 主要结果说明：result对象
 
 文档抽取会在返回结果的result对象中包含以下关键信息。
-#### success_count：成功处理的文档页数
 
-#### extracted_schema：结构化的抽取结果，以json格式返回，与抽取时传入的schema定义的结构一致。
+**success_count**：成功处理的文档页数。
 
-#### citations：抽取结果的详细信息，包含坐标位置
+**extracted_schema**：结构化的抽取结果，以json格式返回，与抽取时传入的schema定义的结构一致。
 
-- **key**：抽取字段
+**citations**：抽取结果的详细信息，包含坐标位置，结构与schema定义一致。
+
+每个抽取字段的详细信息如下：
+- **key**：抽取字段名
   - **value**：该字段的抽取结果
   - **bounding_regions**：抽取结果value对应的坐标位置
     - **page_number**：所在页码，从1开始
     - **text**：边界框所在区域内的文本内容
     - **position**：坐标位置，长度为8的数组，表示四个顶点的像素坐标 [左上x, 左上y, 右上x, 右上y, 右下x, 右下y, 左下x, 左下y]
 
-#### stamps：印章相关信息
+**stamps**：印章相关信息
 
-- **stamps**：印章识别结果
-  - **color**：当前印章颜色，可选值有：红色、蓝色、黑色、其他
-  - **position**：印章的坐标信息
-  - **stamp_shape**：当前印章形状，可选值有：圆章、椭圆章、方章、三角章、菱形章、其他
-  - **type**：当前印章类型，可选值有：公章、个人章、专用章、其他、合同专用章、财务专用章、发票专用章、业务专用章
-  - **value**：印章的文本内容
+- **color**：当前印章颜色，可选值有：红色、蓝色、黑色、其他
+- **position**：印章的坐标信息
+- **stamp_shape**：当前印章形状，可选值有：圆章、椭圆章、方章、三角章、菱形章、其他
+- **type**：当前印章类型，可选值有：公章、个人章、专用章、其他、合同专用章、财务专用章、发票专用章、业务专用章
+- **value**：印章的文本内容
 
-#### pages：文档页面相关信息
+**pages**：文档页面相关信息
 
 - **page_number**：当前页码
 - **image_id**：当前页面图片id
 - **height**：文档页面高度
 - **width**：文档页面宽度
-- **angle**：页面角度（可选值0, 90, 180, 270)
-- **status**：当前页处理状态，success或者error_message
+- **angle**：页面角度（可选值0, 90, 180, 270）
+- **status**：当前页处理状态
 - **durations**：当前页处理耗时(毫秒)
 
-#### part_durations：各阶段耗时统计
+**part_durations**：各阶段耗时统计
 
 - **parse_duration**：解析耗时(毫秒)
 - **retrieve_duration**：检索耗时(毫秒)
 - **prompt_duration**：提示词处理耗时(毫秒)
 - **llm_duration**：大模型推理耗时(毫秒)
 - **format_duration**：格式化耗时(毫秒)
+
+### 错误码说明
+
+| **错误码** | **描述**                                 |
+| :------ | :------------------------------------- |
+| 40101   | x-ti-app-id 或 x-ti-secret-code 为空      |
+| 40102   | x-ti-app-id 或 x-ti-secret-code 无效，验证失败 |
+| 40103   | 客户端IP不在白名单                             |
+| 40003   | 余额不足，请充值后再使用                           |
+| 40004   | Parameter error (参数错误，请检查入参)                      |
+| 40007   | 机器人不存在或未发布                             |
+| 40008   | 机器人未开通，请至市场开通后重试                       |
+| 40301   | 图片类型不支持                                |
+| 40302   | 上传文件大小不符，文件大小不超过 500M                  |
+| 40303   | 文件类型不支持，接口会返回实际检测到的文件类型，如“当前文件类型为.gif” |
+| 40304   | 图片尺寸不符，图像宽高须介于 20 和 10000（像素）之间        |
+| 40305   | File not uploaded (识别文件未上传)                                |
+| 40306   | qps超过限制                                |
+| 40400   | 无效的请求链接，请检查链接是否正确                      |
+| 40424   | Page number out of range (页面设置超出文件范围)                          |
+| 40425   | The input file format is not supported (输入文件格式不支持)  |
+| 500     | Engine failed (服务器内部错误)  |
+| 50011   | LLM Connection Failed （访问大模型超时）  |
+| 50012   | LLM Engine Faield (大模型引擎错误)  |   

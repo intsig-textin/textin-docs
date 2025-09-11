@@ -99,7 +99,8 @@
                 "group": "文档抽取",
                 "pages": [
                   "xparse/extract-quickstart-v3",
-                  "xparse/extract-tutorial-v3"
+                  "xparse/extract-tutorial-v3",
+                  "xparse/extract-best-practices-v3"
                 ]
               },
               {
