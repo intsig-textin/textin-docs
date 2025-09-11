@@ -8,7 +8,7 @@ title: "快速启动"
 
 ## 概述
 
-TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档抽取中，您可以自定义抽取配置（JSON schema），指定您要抽取的字段名称、类型和字段描述，系统会根据您定义的配置进行抽取。如果您对文档抽取输出的结果字段类型有要求，例如区分文本和数字，那么文档抽取会非常有用。
+TextIn xParse现已推出的全新版本的文档抽取API（v3）。在文档抽取中，您可以自定义抽取配置（JSON schema），指定您要抽取的字段名称、类型和字段描述，系统会根据您定义的配置进行抽取。
 
 通过定义JSON schema，文档抽取兼顾了定义字段的**灵活性**和输出结果的**稳定性**。
 
@@ -165,7 +165,7 @@ import requests
 url = "https://api.textin.com/ai/service/v3/entity_extraction"
 
 payload = {
-    # 您要要抽取的文件
+    # 您要抽取的文件
     "file": {
         "file_url": "https://web-api.textin.com/open/image/download?filename=54efc36a05cf475aa6b39137b0717726"
     },
@@ -276,23 +276,7 @@ print(response.json())
         "status": "Success",
         "durations": 930.178466796875
       }
-    ],
-    "stamps": [
-      {
-        "color": "红色",
-        "position": [1223, 995, 1642, 1007, 1630, 1689, 1621, 1677],
-        "stamp_shape": "圆章",
-        "type": "公章",
-        "value": "电力公司专用章"
-      }
     ]
-  },
-  "part_durations": {
-    "parse_duration": 1080,
-    "retrieve_duration": 0,
-    "prompt_duration": 1,
-    "llm_duration": 7114,
-    "format_duration": 51
   }
 }
 ```
@@ -343,14 +327,6 @@ print(response.json())
 - **angle**：页面角度（可选值0, 90, 180, 270）
 - **status**：当前页处理状态
 - **durations**：当前页处理耗时(毫秒)
-
-**part_durations**：各阶段耗时统计
-
-- **parse_duration**：解析耗时(毫秒)
-- **retrieve_duration**：检索耗时(毫秒)
-- **prompt_duration**：提示词处理耗时(毫秒)
-- **llm_duration**：大模型推理耗时(毫秒)
-- **format_duration**：格式化耗时(毫秒)
 
 ### 错误码说明
 
