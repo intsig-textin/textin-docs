@@ -15,7 +15,7 @@ description: "参考示例，快速将医疗票据识别API接入到您的系统
 
 您可以参考以下示例文件和步骤，快速验证并将医疗票据API接入到您的系统和应用流程中。
 
-![Quick start 1](/images/bill-quickstart-1.webp)  ![Quick start 2](/images/bill-quickstart-2.webp)
+![Quick start 1](/images/bill-medical-quickstart-1.webp)  ![Quick start 2](/images/bill-medical-quickstart-2.webp)
 
 ### 先决条件：获取API Key
 
@@ -215,17 +215,11 @@ if __name__ == "__main__":
 | 40007   | 机器人不存在或未发布                                                           |
 | 40008   | 机器人未开通，请至市场开通后重试                                                     |
 | 40301   | 图片类型不支持                                                              |
-| 40302   | 上传文件大小不符，文件大小不超过 500M                                                |
-| 40303   | 文件类型不支持，接口会返回实际检测到的文件类型，如“当前文件类型为.gif”                               |
-| 40304   | 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内             |
+| 40302   | 上传文件大小不符，文件大小不超过 20M                                                |
+| 40303   | 文件类型不支持，接口会返回实际检测到的文件类型                              |
+| 40304   | 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内            |
 | 40305   | 识别文件未上传                                                              |
 | 40422   | 文件损坏（The file is corrupted.）                                         |
 | 40423   | PDF密码错误（Password required or incorrect password.）                    |
-| 40424   | 页数设置超出文件范围（Page number out of range.）                                |
-| 40425   | 文件格式不支持（The input file format is not supported.）                     |
-| 40427   | DPI参数不在支持列表中（Input DPI is not in the allowed DPIs list(72,144,216).） |
-| 40428   | word和ppt转pdf失败或者超时（Process office file failed.）                      |
-| 50207   | 部分页面解析失败（Partial failed）                                             |
-| 40400   | 无效的请求链接，请检查链接是否正确                                                    |
 | 30203   | 基础服务故障，请稍后重试                                                         |
 | 500     | 服务器内部错误                                                              |
