@@ -10,7 +10,7 @@ security:
   - AppIdAuth: []
     SecretCodeAuth: []
 paths:
-  /cci_ai/service/v1/receipt_crop_and_recog_multi:
+  /ai/service/v1/bill_recognize_v2:
     post:
       summary: 国内通用票据v2接口识别
 
@@ -22,14 +22,14 @@ paths:
             type: integer
             enum:
               - 0
-              - 1            
+              - 1
             default: 0
         - name: specific_pages
           in: query
           description: 指定多页样本中需要识别的样本，可以使用"1,3,2"形式来逐页选择，或"2-4"形式来连续选择，返回结果会重新排序以遵照源文件顺序，默认为空，识别所有页面
           schema:
-            type: string       
-            example: "3-5,1"   
+            type: string
+            example: "3-5,1"
         - name: crop_complete_image
           in: query
           description: 选择是否需要输出各票据图片，1为输出各票据切片base64编码，0为不输出各票据图片，默认为0
@@ -37,7 +37,7 @@ paths:
             type: integer
             enum:
               - 0
-              - 1            
+              - 1
             default: 0
         - name: crop_value_image
           in: query
@@ -46,7 +46,7 @@ paths:
             type: integer
             enum:
               - 0
-              - 1            
+              - 1
             default: 0
         - name: merge_digital_elec_invoice
           in: query
@@ -57,7 +57,7 @@ paths:
             type: integer
             enum:
               - 0
-              - 1            
+              - 1
             default: 0
         - name: return_ppi
           in: query
@@ -67,12 +67,11 @@ paths:
             type: integer
             enum:
               - 0
-              - 1            
+              - 1
             default: 0
-  
 
       operationId: cci_ai_service_v1_receipt_crop_and_recog_multi
-    
+
       requestBody:
         description: 要上传的图片，目前支持jpg, png, bmp, pdf, tiff, ofd, webp, 单帧gif等大部分格式.
         required: true
@@ -84,15 +83,15 @@ paths:
               example: success
 
       responses:
-        '200':
-          description: ''
+        "200":
+          description: ""
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/CodeMessage'
-                  - $ref: '#/components/schemas/Response'
-            
+                  - $ref: "#/components/schemas/CodeMessage"
+                  - $ref: "#/components/schemas/Response"
+
 components:
   securitySchemes:
     AppIdAuth:
@@ -108,7 +107,7 @@ components:
   schemas:
     CodeMessage:
       type: object
-      required: 
+      required:
         - code
         - message
       properties:
@@ -121,7 +120,7 @@ components:
             - 40301: 没有 http body
             - 40600: 图片解码失败，请检查图片格式是否正确。
             - 40400: 识别失败
-            - 90001: 其他错误, 详情见 message 
+            - 90001: 其他错误, 详情见 message
           enum:
             - 200
             - 40301
@@ -149,13 +148,13 @@ components:
               - result
               - page_number
             properties:
-              result: 
+              result:
                 type: object
                 properties:
                   object_list:
                     allOf:
-                      - $ref: '#/components/schemas/ObjectList'
-                    
+                      - $ref: "#/components/schemas/ObjectList"
+
               duration:
                 type: integer
                 description: 识别耗时
@@ -176,33 +175,33 @@ components:
       type: array
       items:
         allOf:
-        - $ref: '#/components/schemas/ObjectListCommon'
-        - oneOf:
-          - $ref: '#/components/schemas/TypeOther'
-          - $ref: '#/components/schemas/Type_vat_invoice'
-          - $ref: '#/components/schemas/Type_vat_digital_invoice'
-          - $ref: '#/components/schemas/Type_railway_digital_ticket'
-          - $ref: '#/components/schemas/Type_flight_digital_ticket'
-          - $ref: '#/components/schemas/Type_electronic_medical_invoice'
-          - $ref: '#/components/schemas/Type_outpatient_medical_invoice'
-          - $ref: '#/components/schemas/Type_inpatient_medical_invoice'
-          - $ref: '#/components/schemas/Type_train_ticket'
-          - $ref: '#/components/schemas/Type_taxi_ticket'
-          - $ref: '#/components/schemas/Type_quota_invoice'
-          - $ref: '#/components/schemas/Type_ride_receipt'
-          - $ref: '#/components/schemas/Type_used_car_purchase_invoice'
-          - $ref: '#/components/schemas/Type_car_purchase_invoice'
-          - $ref: '#/components/schemas/Type_vehicle_toll'
-          - $ref: '#/components/schemas/Type_vat_invoice_sales_list'
-          - $ref: '#/components/schemas/Type_highway_passenger_invoice'
-          - $ref: '#/components/schemas/Type_passenger_transport_invoice'
-          - $ref: '#/components/schemas/Type_parking_invoice'
-          - $ref: '#/components/schemas/Type_shipping_invoice'
-          - $ref: '#/components/schemas/Type_flight_itinerary'
-          - $ref: '#/components/schemas/Type_vat_volume_invoice'
-          - $ref: '#/components/schemas/Type_non_tax_income_unified_bill'
-          - $ref: '#/components/schemas/Type_general_machine_invoice'
-          
+          - $ref: "#/components/schemas/ObjectListCommon"
+          - oneOf:
+              - $ref: "#/components/schemas/TypeOther"
+              - $ref: "#/components/schemas/Type_vat_invoice"
+              - $ref: "#/components/schemas/Type_vat_digital_invoice"
+              - $ref: "#/components/schemas/Type_railway_digital_ticket"
+              - $ref: "#/components/schemas/Type_flight_digital_ticket"
+              - $ref: "#/components/schemas/Type_electronic_medical_invoice"
+              - $ref: "#/components/schemas/Type_outpatient_medical_invoice"
+              - $ref: "#/components/schemas/Type_inpatient_medical_invoice"
+              - $ref: "#/components/schemas/Type_train_ticket"
+              - $ref: "#/components/schemas/Type_taxi_ticket"
+              - $ref: "#/components/schemas/Type_quota_invoice"
+              - $ref: "#/components/schemas/Type_ride_receipt"
+              - $ref: "#/components/schemas/Type_used_car_purchase_invoice"
+              - $ref: "#/components/schemas/Type_car_purchase_invoice"
+              - $ref: "#/components/schemas/Type_vehicle_toll"
+              - $ref: "#/components/schemas/Type_vat_invoice_sales_list"
+              - $ref: "#/components/schemas/Type_highway_passenger_invoice"
+              - $ref: "#/components/schemas/Type_passenger_transport_invoice"
+              - $ref: "#/components/schemas/Type_parking_invoice"
+              - $ref: "#/components/schemas/Type_shipping_invoice"
+              - $ref: "#/components/schemas/Type_flight_itinerary"
+              - $ref: "#/components/schemas/Type_vat_volume_invoice"
+              - $ref: "#/components/schemas/Type_non_tax_income_unified_bill"
+              - $ref: "#/components/schemas/Type_general_machine_invoice"
+
     ObjectListCommon:
       type: object
       required:
@@ -213,7 +212,7 @@ components:
         - rotated_image_height
         - kind
         - kind_description
-        - position 
+        - position
         - stamp_list
         - qr_code_list
       properties:
@@ -254,24 +253,24 @@ components:
             - electronic_medical_invoice
             - outpatient_medical_invoice
             - inpatient_medical_invoice
-            - train_ticket                
-            - taxi_ticket                 
-            - quota_invoice              
-            - ride_receipt                
-            - used_car_purchase_invoice   
-            - car_purchase_invoice   
+            - train_ticket
+            - taxi_ticket
+            - quota_invoice
+            - ride_receipt
+            - used_car_purchase_invoice
+            - car_purchase_invoice
             - other
-            - unauthorized_type  
+            - unauthorized_type
             - vehicle_toll
             - vat_invoice_sales_list
             - highway_passenger_invoice
             - passenger_transport_invoice
             - parking_invoice
-            - shipping_invoice        
+            - shipping_invoice
             - flight_itinerary
             - vat_volume_invoice
             - non_tax_income_unified_bill
-            - general_machine_invoice      
+            - general_machine_invoice
           example: vat_invoice
 
         type_description:
@@ -322,22 +321,22 @@ components:
             - traffic           交通
             - vehicle           用车
           enum:
-            - communication     
-            - daily             
-            - digital_appliance 
-            - education         
-            - foodstuff         
-            - lodging           
-            - medical_treatment 
-            - office            
-            - other             
-            - post              
-            - raiment           
-            - rent_decoration   
-            - repast            
-            - service           
-            - traffic           
-            - vehicle           
+            - communication
+            - daily
+            - digital_appliance
+            - education
+            - foodstuff
+            - lodging
+            - medical_treatment
+            - office
+            - other
+            - post
+            - raiment
+            - rent_decoration
+            - repast
+            - service
+            - traffic
+            - vehicle
           example: traffic
 
         kind_description:
@@ -359,7 +358,7 @@ components:
               - (4, 5) 右下角坐标
               - (6, 7) 左下角坐标
             example: 100
-          example: [100,100,200,100,200,200,100,200]
+          example: [100, 100, 200, 100, 200, 200, 100, 200]
 
         item_list:
           type: array
@@ -378,7 +377,7 @@ components:
                 example: title
 
               value:
-                type: string 
+                type: string
                 description: 识别字段值
                 example: "True"
 
@@ -396,7 +395,7 @@ components:
                     - (4, 5) 右下角坐标
                     - (6, 7) 左下角坐标
                   example: 100
-                example: [100,100,200,100,200,200,100,200]
+                example: [100, 100, 200, 100, 200, 200, 100, 200]
 
               description:
                 type: string
@@ -416,7 +415,7 @@ components:
                 - key
                 - value
                 - position
-                - description                
+                - description
               properties:
                 key:
                   type: string
@@ -424,7 +423,7 @@ components:
                     - stamp_info              印章内容
                     - stamp_type              印章类型
                     - stamp_invoice_seller_id 印章销售方纳税人识别号
-                    
+
                     其中印章类型, 当前支持以下类型的判断：
                     - 全国统一发票监制章
                     - 发票专用章
@@ -434,12 +433,12 @@ components:
                     - stamp_type
                     - stamp_invoice_seller_id
                   example: stamp_type
-                
+
                 value:
                   type: string
                   description: 字段识别结果
                   example: "全国统一发票监制章"
-                
+
                 description:
                   type: string
                   description: 字段中文描述
@@ -459,7 +458,7 @@ components:
                       - (4, 5) 右下角坐标
                       - (6, 7) 左下角坐标
                     example: 100
-                  example: [100,100,200,100,200,200,100,200]
+                  example: [100, 100, 200, 100, 200, 200, 100, 200]
 
         qr_code_list:
           type: array
@@ -474,7 +473,7 @@ components:
                 - key
                 - value
                 - position
-                - description                
+                - description
               properties:
                 key:
                   type: string
@@ -483,12 +482,12 @@ components:
                   enum:
                     - qr_code_info
                   example: qr_code_info
-                
+
                 value:
                   type: string
                   description: 字段识别结果
                   example: "01,61,,24118999111000010898,770.00,20240412,,0134"
-                
+
                 description:
                   type: string
                   description: 字段中文描述
@@ -508,10 +507,9 @@ components:
                       - (4, 5) 右下角坐标
                       - (6, 7) 左下角坐标
                     example: 100
-                  example: [100,100,200,100,200,200,100,200]
+                  example: [100, 100, 200, 100, 200, 200, 100, 200]
 
-
-# 具体的票据类型
+    # 具体的票据类型
     Type_vat_invoice:
       type: object
       required:
@@ -523,7 +521,7 @@ components:
             切分后单张票据类型
             - vat_invoice       增值税发票
           enum:
-            - vat_invoice       
+            - vat_invoice
           example: vat_invoice
 
         item_list:
@@ -601,7 +599,7 @@ components:
                   - exist_manufacture_supervising_seal
                   - vat_invoice_daima_right_side
                   - vat_invoice_haoma_right_side
-                  - vat_invoice_service_type  
+                  - vat_invoice_service_type
                 example: title
 
               value:
@@ -613,7 +611,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -705,9 +703,9 @@ components:
             切分后单张票据类型
             - vat_digital_invoice       数电票(增值税专用发票/普通发票)
           enum:
-            - vat_digital_invoice       
+            - vat_digital_invoice
           example: vat_digital_invoice
-        
+
         item_list:
           type: array
           minItems: 16
@@ -725,8 +723,7 @@ components:
                     properties:
                       key:
                         type: string
-                        description: 
-                          识别字段key
+                        description: 识别字段key
                           - title 标题
                         enum:
                           - title
@@ -734,8 +731,7 @@ components:
 
                       value:
                         type: string
-                        description: 
-                          字段识别结果
+                        description: 字段识别结果
                           - 电子发票(普通发票)
                           - 电子发票(增值税专用发票)
                         enum:
@@ -753,8 +749,7 @@ components:
                     properties:
                       key:
                         type: string
-                        description: 
-                          识别字段key
+                        description: 识别字段key
                           - vat_invoice_service_type 全电票标签
                         enum:
                           - vat_invoice_service_type
@@ -800,7 +795,7 @@ components:
                         type: string
                         description: 字段中文描述
                         example: "全电票标签"
-                        
+
                   - type: object
                     description: 通用结构
                     properties:
@@ -825,7 +820,7 @@ components:
                           - vat_invoice_drawer                  开票人
                           - exist_manufacture_supervising_seal  监制章存在性判断
                         enum:
-                          - invoice_type 
+                          - invoice_type
                           - vat_invoice_number
                           - vat_invoice_issue_date
                           - vat_invoice_payer_name
@@ -840,7 +835,7 @@ components:
                           - vat_invoice_total_cover_tax_digits
                           - vat_invoice_total_note
                           - vat_invoice_drawer
-                          - exist_manufacture_supervising_seal 
+                          - exist_manufacture_supervising_seal
                         example: vat_invoice_number
 
                       value:
@@ -866,7 +861,7 @@ components:
               required:
                 - key
                 - value
-                - description                 
+                - description
               properties:
                 key:
                   type: string
@@ -880,7 +875,7 @@ components:
                     - vat_invoice_unit_price                单价
                     - vat_invoice_quantity                  数量
                     - vat_invoice_unit                      单位
-                    
+
                     建筑服务版式包括以下key:
                     - vat_invoice_product_name              项目名称
                     - vat_invoice_specification             规格型号
@@ -892,7 +887,7 @@ components:
                     - vat_invoice_unit                      单位
                     - vat_invoice_place_of_building_service 建筑服务发生地
                     - vat_invoice_building_name             建筑项目名称
-                    
+
                     不动产销售、不动产经营租赁版式包括以下key:  
                     - vat_invoice_product_name              项目名称
                     - vat_invoice_specification             规格型号
@@ -918,17 +913,17 @@ components:
                     - vat_invoice_certificate_number
                     - vat_invoice_area_unit
                   example: vat_invoice_product_name
-                
+
                 value:
                   type: string
                   description: 字段识别结果
                   example: "*运输服务*千岛湖客运中心-杭州西站"
-                
+
                 description:
                   type: string
                   description: 字段中文描述
                   example: "项目名称"
-                               
+
         transport_list:
           type: array
           minItems: 0
@@ -952,7 +947,7 @@ components:
                     - vat_invoice_from              起运地
                     - vat_invoice_to                到达地
                     - vat_invoice_goods_name        运输货物名称
-                   
+
                     旅客运输服务版式包括以下key: 
                     - vat_invoice_transport_type    交通工具类型
                     - vat_invoice_from              起始地
@@ -1002,7 +997,7 @@ components:
           type: array
           minItems: 20
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -1084,7 +1079,7 @@ components:
           type: array
           minItems: 23
           uniqueItems: true
-          items: 
+          items:
             allOf:
               - required:
                   - key
@@ -1145,8 +1140,8 @@ components:
                           - buyer
                           - buyer_tax_id
                           - invoice_number
-                          - issuing_status  
-                          - gp_no   
+                          - issuing_status
+                          - gp_no
                         example: total
 
                       value:
@@ -1228,7 +1223,7 @@ components:
             切分后单张票据类型
             - electronic_medical_invoice       电子医疗发票
           enum:
-            - electronic_medical_invoice       
+            - electronic_medical_invoice
           example: electronic_medical_invoice
 
         item_list:
@@ -1320,7 +1315,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -1375,7 +1370,7 @@ components:
             切分后单张票据类型
             - outpatient_medical_invoice       纸质门诊发票
           enum:
-            - outpatient_medical_invoice       
+            - outpatient_medical_invoice
           example: outpatient_medical_invoice
 
         item_list:
@@ -1437,7 +1432,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -1496,7 +1491,7 @@ components:
             切分后单张票据类型
             - inpatient_medical_invoice       纸质住院发票
           enum:
-            - inpatient_medical_invoice       
+            - inpatient_medical_invoice
           example: inpatient_medical_invoice
 
         item_list:
@@ -1568,7 +1563,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -1624,7 +1619,7 @@ components:
           type: array
           minItems: 13
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -1661,7 +1656,7 @@ components:
                   - passenger_name
                   - ticket_id
                   - refund
-                  - rebook 
+                  - rebook
                   - dateonly_of_departure_date
                   - timeonly_of_departure_date
                 example: ticket_number
@@ -1694,7 +1689,7 @@ components:
           type: array
           minItems: 10
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -1728,9 +1723,9 @@ components:
                   - surcharge
                   - location
                   - sum
-                  - call_service_surcharge 
-                  - service_surcharge 
-                  - exist_invoice_seal 
+                  - call_service_surcharge
+                  - service_surcharge
+                  - exist_invoice_seal
                   - exist_manufacture_supervising_seal
                 example: invoice_code
 
@@ -1762,7 +1757,7 @@ components:
           type: array
           minItems: 4
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -1809,7 +1804,7 @@ components:
             切分后单张票据类型
             - ride_receipt       网约车行程单
           enum:
-            - ride_receipt       
+            - ride_receipt
           example: ride_receipt
 
         item_list:
@@ -1853,7 +1848,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -1937,7 +1932,7 @@ components:
           type: array
           minItems: 36
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -1987,8 +1982,8 @@ components:
                   - exist_manufacture_supervising_seal          监制章存在性判断
                 enum:
                   - title
-                  - invoice_type 
-                  - vehicle_invoice_page_number  
+                  - invoice_type
+                  - vehicle_invoice_page_number
                   - vehicle_invoice_daima
                   - vehicle_invoice_haoma
                   - vehicle_invoice_buyer
@@ -2024,9 +2019,9 @@ components:
                   - vehicle_invoice_issued_by
                   - vehicle_invoice_jida_daima
                   - vehicle_invoice_jida_haoma
-                  - digital_elec_invoice_number   
-                  - exist_invoice_seal   
-                  - exist_manufacture_supervising_seal 
+                  - digital_elec_invoice_number
+                  - exist_invoice_seal
+                  - exist_manufacture_supervising_seal
                 example: title
 
               value:
@@ -2057,7 +2052,7 @@ components:
           type: array
           minItems: 36
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2106,47 +2101,47 @@ components:
                   - exist_invoice_seal                                发票专用章存在性判断
                   - exist_manufacture_supervising_seal                监制章存在性判断
                 enum:
-                  - title  
-                  - invoice_type 
-                  - vehicle_invoice_page_number                                            
-                  - vehicle_invoice_daima                             
-                  - vehicle_invoice_haoma                             
-                  - vehicle_invoice_issue_date                        
-                  - vehicle_invoice_machine_id                        
-                  - vehicle_invoice_jida_daima                        
-                  - vehicle_invoice_jida_haoma                        
-                  - vehicle_invoice_tax_code                          
-                  - vehicle_invoice_buyer                             
-                  - vehicle_invoice_buyer_id                         
-                  - vehicle_invoice_buyer_tax_id                      
-                  - vehicle_invoice_vehicle_type                      
-                  - vehicle_invoice_car_made_place                    
-                  - vehicle_invoice_car_model                         
-                  - vehicle_invoice_car_vin                           
-                  - vehicle_invoice_cert_id                           
-                  - vehicle_invoice_commodity_inspection_id           
-                  - vehicle_invoice_engine_id                         
-                  - vehicle_invoice_import_certificate_id             
-                  - vehicle_invoice_total_price_char                 
-                  - vehicle_invoice_total_price_digits                
-                  - vehicle_invoice_seller                            
-                  - vehicle_invoice_seller_address                    
-                  - vehicle_invoice_seller_bank_account               
-                  - vehicle_invoice_seller_bank_name                 
-                  - vehicle_invoice_seller_tax_id                    
-                  - vehicle_invoice_seller_telephone                  
-                  - vehicle_invoice_tax_rate                          
-                  - vehicle_invoice_tax_amount                        
-                  - vehicle_invoice_tax_authority                     
-                  - vehicle_invoice_tax_authority_id                  
-                  - vehicle_invoice_price_without_tax                 
-                  - vehicle_invoice_tax_payment_certificate_number    
-                  - vehicle_invoice_tonnage                           
-                  - vehicle_invoice_limit_number                      
-                  - vehicle_invoice_issued_by   
-                  - digital_elec_invoice_number   
-                  - exist_invoice_seal   
-                  - exist_manufacture_supervising_seal                     
+                  - title
+                  - invoice_type
+                  - vehicle_invoice_page_number
+                  - vehicle_invoice_daima
+                  - vehicle_invoice_haoma
+                  - vehicle_invoice_issue_date
+                  - vehicle_invoice_machine_id
+                  - vehicle_invoice_jida_daima
+                  - vehicle_invoice_jida_haoma
+                  - vehicle_invoice_tax_code
+                  - vehicle_invoice_buyer
+                  - vehicle_invoice_buyer_id
+                  - vehicle_invoice_buyer_tax_id
+                  - vehicle_invoice_vehicle_type
+                  - vehicle_invoice_car_made_place
+                  - vehicle_invoice_car_model
+                  - vehicle_invoice_car_vin
+                  - vehicle_invoice_cert_id
+                  - vehicle_invoice_commodity_inspection_id
+                  - vehicle_invoice_engine_id
+                  - vehicle_invoice_import_certificate_id
+                  - vehicle_invoice_total_price_char
+                  - vehicle_invoice_total_price_digits
+                  - vehicle_invoice_seller
+                  - vehicle_invoice_seller_address
+                  - vehicle_invoice_seller_bank_account
+                  - vehicle_invoice_seller_bank_name
+                  - vehicle_invoice_seller_tax_id
+                  - vehicle_invoice_seller_telephone
+                  - vehicle_invoice_tax_rate
+                  - vehicle_invoice_tax_amount
+                  - vehicle_invoice_tax_authority
+                  - vehicle_invoice_tax_authority_id
+                  - vehicle_invoice_price_without_tax
+                  - vehicle_invoice_tax_payment_certificate_number
+                  - vehicle_invoice_tonnage
+                  - vehicle_invoice_limit_number
+                  - vehicle_invoice_issued_by
+                  - digital_elec_invoice_number
+                  - exist_invoice_seal
+                  - exist_manufacture_supervising_seal
                 example: title
 
               value:
@@ -2177,7 +2172,7 @@ components:
           type: array
           minItems: 6
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2201,12 +2196,12 @@ components:
                   - money
                   - date
                   - time
-                  - location               
-                  - entrance  
-                  - exit     
+                  - location
+                  - entrance
+                  - exit
                   - exist_invoice_seal
                   - exist_manufacture_supervising_seal
-                  - title         
+                  - title
                 example: toll_code
 
               value:
@@ -2238,7 +2233,7 @@ components:
           type: array
           minItems: 11
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2268,12 +2263,12 @@ components:
                   - page
                   - total
                   - tax_total
-                  - issued_date  
+                  - issued_date
                   - subtotal
-                  - tax_subtotal           
-                  - remarks 
-                  - exist_invoice_seal            
-                  - title             
+                  - tax_subtotal
+                  - remarks
+                  - exist_invoice_seal
+                  - title
                 example: total_page
 
               value:
@@ -2285,7 +2280,7 @@ components:
                 type: string
                 description: 识别字段中文描述
                 example: 合计页码
-  
+
         product_list:
           type: array
           minItems: 0
@@ -2355,7 +2350,7 @@ components:
           type: array
           minItems: 7
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2381,12 +2376,12 @@ components:
                   - date
                   - time
                   - passenger_name
-                  - passenger_id          
-                  - exist_invoice_seal        
+                  - passenger_id
+                  - exist_invoice_seal
                   - departure
-                  - arrival  
-                  - title 
-                  - bus_number 
+                  - arrival
+                  - title
+                  - bus_number
                 example: invoice_code
 
               value:
@@ -2417,7 +2412,7 @@ components:
           type: array
           minItems: 7
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2443,12 +2438,12 @@ components:
                   - date
                   - time
                   - passenger_name
-                  - passenger_id              
-                  - exist_invoice_seal           
-                  - departure       
+                  - passenger_id
+                  - exist_invoice_seal
+                  - departure
                   - arrival
-                  - title 
-                  - bus_number    
+                  - title
+                  - bus_number
                 example: invoice_code
 
               value:
@@ -2479,7 +2474,7 @@ components:
           type: array
           minItems: 2
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2491,8 +2486,8 @@ components:
                   - exist_invoice_seal 发票专用章存在性判断
                 enum:
                   - invoice_number
-                  - money             
-                  - exist_invoice_seal           
+                  - money
+                  - exist_invoice_seal
                 example: invoice_number
 
               value:
@@ -2516,14 +2511,14 @@ components:
             切分后单张票据类型
             - shipping_invoice            船运客票
           enum:
-            - shipping_invoice 
+            - shipping_invoice
           example: shipping_invoice
 
         item_list:
           type: array
           minItems: 5
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2543,10 +2538,10 @@ components:
                   - invoice_number
                   - money
                   - date
-                  - time            
-                  - exist_invoice_seal           
+                  - time
+                  - exist_invoice_seal
                   - departure
-                  - arrival           
+                  - arrival
                 example: invoice_code
 
               value:
@@ -2571,14 +2566,14 @@ components:
             切分后单张票据类型
             - flight_itinerary            航空运输电子客票行程单
           enum:
-            - flight_itinerary 
+            - flight_itinerary
           example: flight_itinerary
 
         item_list:
           type: array
           minItems: 14
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2613,7 +2608,7 @@ components:
                   - issued_by
                   - e_ticket_no
                   - insurance
-                  - restriction            
+                  - restriction
                 example: civil_aviation_fund
 
               value:
@@ -2692,7 +2687,7 @@ components:
             切分后单张票据类型
             - vat_volume_invoice          增值税普通发票(卷票)
           enum:
-            - vat_volume_invoice       
+            - vat_volume_invoice
           example: vat_volume_invoice
 
         item_list:
@@ -2752,7 +2747,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -2806,7 +2801,7 @@ components:
             切分后单张票据类型
             - non_tax_income_unified_bill   非税收入统一票据
           enum:
-            - non_tax_income_unified_bill       
+            - non_tax_income_unified_bill
           example: non_tax_income_unified_bill
 
         item_list:
@@ -2886,7 +2881,7 @@ components:
                 type: string
                 description: 字段中文描述
                 example: 标题
-            
+
         product_list:
           type: array
           minItems: 0
@@ -2945,14 +2940,14 @@ components:
             切分后单张票据类型
             - general_machine_invoice     通用机打发票
           enum:
-            - general_machine_invoice 
+            - general_machine_invoice
           example: general_machine_invoice
 
         item_list:
           type: array
           minItems: 9
           uniqueItems: true
-          items: 
+          items:
             type: object
             properties:
               key:
@@ -2980,10 +2975,10 @@ components:
                   - buyer
                   - buyer_tax_id
                   - total
-                  - date            
+                  - date
                   - time
                   - exist_invoice_seal
-                  - exist_manufacture_supervising_seal        
+                  - exist_manufacture_supervising_seal
                 example: title
 
               value:
@@ -2995,4 +2990,3 @@ components:
                 type: string
                 description: 识别字段中文描述
                 example: 标题
-
