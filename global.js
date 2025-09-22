@@ -3,11 +3,13 @@ const xParseDemoHref =
 const billDemoHref =
   "https://www.textin.com/console/recognition/robot_bills?service=bill_recognize_v2";
 
-function changePrimaryButton() {
+function isBillPage() {
   var pathname = window.location.pathname;
+  return pathname.includes("bill");
+}
 
-  // 依据路由修改快速体验按钮跳转链接
-  if (pathname.includes("bill")) {
+function changeTrialButtonPC() {
+  if (isBillPage()) {
     var primaryButtonPC = document.querySelector("#topbar-cta-button > a");
 
     if (
@@ -19,27 +21,45 @@ function changePrimaryButton() {
   }
 }
 
-changePrimaryButton();
+function changeTrialButtonMobile() {
+  if (isBillPage()) {
+    var primaryButtonMobile = document.querySelector(
+      "#headlessui-portal-root nav li:not(#topbar-cta-button):not(.navbar-link) a"
+    );
+    if (
+      primaryButtonMobile &&
+      primaryButtonMobile.getAttribute("href") != billDemoHref
+    ) {
+      primaryButtonMobile.setAttribute("href", billDemoHref);
+    }
+  }
+}
 
-var throttledChangeButton = throttle(changePrimaryButton, 500);
+function changePageTitle() {
+  if (isBillPage()) {
+    var title = document.title || "";
+    var tileSections = title.split("-");
+    var newTitle = tileSections[0] + "- Textin 票据识别";
+    document.title = newTitle;
+  }
+}
 
-window.addEventListener("mousemove", throttledChangeButton);
-window.addEventListener("touchmove", throttledChangeButton);
+function changeMetaInfo() {
+  changeTrialButtonPC();
+  changePageTitle();
+}
+
+changeMetaInfo();
+
+var throttledChangeMetaInfo = throttle(changeMetaInfo, 500);
+
+window.addEventListener("mousemove", throttledChangeMetaInfo);
+window.addEventListener("touchmove", throttledChangeMetaInfo);
 
 if (isMobile) {
   setInterval(() => {
-    var pathname = window.location.pathname;
-    if (pathname.includes("bill")) {
-      var primaryButtonMobile = document.querySelector(
-        "#headlessui-portal-root nav li:not(#topbar-cta-button):not(.navbar-link) a"
-      );
-      if (
-        primaryButtonMobile &&
-        primaryButtonMobile.getAttribute("href") != billDemoHref
-      ) {
-        primaryButtonMobile.setAttribute("href", billDemoHref);
-      }
-    }
+    changeTrialButtonMobile();
+    changePageTitle();
   }, 500);
 }
 

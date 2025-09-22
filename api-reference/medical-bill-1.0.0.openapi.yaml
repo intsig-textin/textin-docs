@@ -60,7 +60,17 @@ paths:
       operationId: ai_service_v1_medical_crop_and_recog_multi
 
       requestBody:
-        description: 要上传的图片，目前支持jpg, png, bmp, pdf, tiff, ofd, webp, 单帧gif等大部分格式.
+        description: |
+          支持以下两种请求格式
+
+          1. Content-Type: application/octet-stream
+
+          要上传的图片，目前支持jpg、png、bmp、pdf、tiff、ofd、单帧gif等大部分格式，ofd文件支持多页，多页pdf样本当前版本仅识别第一页内容。
+          请注意，请求体的数据格式为本地文件的二进制流，非 FormData 或其他格式。文件大小不超过 20M，图像宽高须介于 20 和 10000（像素）之间。
+
+          2. Content-Type: text/plain
+
+          请求体的数据格式为文本，内容为在线文件的URL链接（支持http以及https协议）。在线文件大小不超过 20M，图像宽高须介于 20 和 10000（像素）之间。
         required: true
         content:
           application/octet-stream:
@@ -103,17 +113,42 @@ components:
           type: integer
           description: |
             错误码
-            - 200: OK
-            - 40301: 没有 http body
-            - 40600: 图片解码失败，请检查图片格式是否正确。
-            - 40400: 识别失败
-            - 90001: 其他错误, 详情见 message 
+            - 200: success
+            - 40101: x-ti-app-id 或 x-ti-secret-code 为空 
+            - 40102: x-ti-app-id 或 x-ti-secret-code 无效，验证失败 
+            - 40103: 客户端IP不在白名单
+            - 40003: 余额不足，请充值后再使用
+            - 40004: 参数错误，请查看技术文档，检查传参 
+            - 40007: 机器人不存在或未发布
+            - 40008: 机器人未开通，请至市场开通后重试
+            - 40301: 图片类型不支持 
+            - 40302: 上传文件大小不符，文件大小不超过 20M
+            - 40303: 文件类型不支持，接口会返回实际检测到的文件类型 
+            - 40304: 图片尺寸不符，长宽比小于2的图片宽高需在20～20000像素范围内，其他图片的宽高需在20～10000像素范围内
+            - 40305: 识别文件未上传
+            - 40422: 文件损坏（The file is corrupted.）
+            - 40423: PDF密码错误（Password required or incorrect password.）
+            - 30203: 基础服务故障，请稍后重试
+            - 500: 服务器内部错误
           enum:
             - 200
+            - 40101
+            - 40102
+            - 40103
+            - 40003
+            - 40004
+            - 40007
+            - 40008
             - 40301
-            - 40600
-            - 40400
-            - 90001
+            - 40302
+            - 40303
+            - 40304
+            - 40305
+            - 40422
+            - 40423
+            - 30203
+            - 500
+
         message:
           type: string
           description: 错误信息
