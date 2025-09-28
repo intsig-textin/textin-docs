@@ -58,16 +58,13 @@ paths:
                   type: object
                   description: |
                     抽取数据结构，参考[JSON schema说明](/xparse/extract-quickstart-v3#json-schema-结构说明和抽取指南)
-                  example: {
-                    type: "object",
-                    properties: {
-                      "商品": {
-                        type: "string",
-                        description: "商品名称"
-                      }
-                    },
-                    required: ["商品"]
-                  }
+                  example:
+                    {
+                      type: "object",
+                      properties:
+                        { "商品": { type: "string", description: "商品名称" } },
+                      required: ["商品"],
+                    }
                 parse_options:
                   $ref: "#/components/schemas/ParseOptions"
                 extract_options:
@@ -189,6 +186,11 @@ components:
           type: string
           default: html
           enum: [md, html, none]
+        pdf_pwd:
+          type: string
+          description: |
+            当pdf为加密文档时，需要提供密码。 
+            备注：对前端封装该接口时，需要自行对密码进行安全防护
 
     ExtractOptions:
       type: object
@@ -231,11 +233,15 @@ components:
             - 40305: File not uploaded (识别文件未上传）
             - 40306: qps超过限制
             - 40400: 无效的请求链接，请检查链接是否正确
+            - 40422: The file is corrupted (文件损坏)
+            - 40423: Password required or incorrect password (PDF密码错误)
             - 40424: Page number out of range (页面设置超出文件范围）
             - 40425: The input file format is not supported (输入文件格式不支持）
+            - 40428: Process office file failed (word和ppt转pdf失败或者超时)
             - 500: Engine failed (服务器内部错误）
             - 50011: LLM Connection Failed （访问大模型超时）
-            - 50012: LLM Engine Faield (大模型引擎错误）     
+            - 50012: LLM Engine Failed (大模型引擎错误）     
+            - 50207: Partial failed (部分页面解析失败)
           enum:
             - 200
             - 40101
@@ -251,11 +257,15 @@ components:
             - 40305
             - 40306
             - 40400
+            - 40422
+            - 40423
             - 40424
             - 40425
+            - 40428
             - 500
             - 50011
             - 50012
+            - 50207
           example: 200
         message:
           type: string
