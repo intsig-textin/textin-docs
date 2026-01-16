@@ -1,0 +1,355 @@
+---
+title: "文档元素和元数据"
+description: "了解 xParse 中的文档元素结构和元数据字段"
+---
+
+当 xParse [解析](/pipeline/parse) 文件时，会生成一个**文档元素**列表（简称**元素**）。每个元素代表源文件的不同组成部分。
+
+## 元素示例
+
+以下是一个元素的示例：
+
+```json
+{
+    "element_id": "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc",
+    "type": "NarrativeText",
+    "text": "xParse 是一个端到端文档处理 AI 基础设施，致力于将非结构化文档高效转化为可查询、可分析的向量数据资产。",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "last_modified": "1758624866230",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "coordinates": [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732],
+        "parent_id": "23a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc",
+        "category_depth": 1,
+        "image_base64": null,
+        "image_mine_type": null,
+        "text_as_html": "<p>...</p>",
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        },
+    }
+}
+```
+
+每个元素都包含 [type](#元素类型)、[element_id](#元素-id)、解析提取的 `text` 以及 [metadata](#元数据)。元数据的具体内容会根据元素类型、文件结构以及 [解析](/pipeline/parse)、[分块](/pipeline/chunk)、[向量化](/pipeline/embed) 阶段的配置而有所不同。如果执行了向量化，元素还会包含从 `text` 生成的 `embeddings`（向量嵌入），其长度取决于使用的嵌入模型。
+
+## 元素类型
+
+与将文件简单视为纯文本不同，xParse 会保留文件的语义结构。这样您就能更灵活地控制后续处理方式，并充分考虑文件的结构特点。同时，通过将不同文件格式的数据统一转换为 xParse 的元素类型，无论源文件是什么格式，您都可以在下游处理中采用相同的方式处理。
+
+例如，当您需要总结一个文件时，可能只关心正文内容，而不需要页眉和页脚。通过指定元素类型，您可以轻松过滤掉不需要的元素。
+
+以下是可用的元素类型：
+
+| 元素类型 | 描述 |
+| -------- | ---- |
+| `Formula` | 公式 |
+| `FigureCaption` | 图片标题 |
+| `NarrativeText` | 除了标题、页眉页脚、图片说明文字列表外的普通段落文字 |
+| `ListItem` | 列表 |
+| `Title` | 章节标题 |
+| `Image` | 图片 |
+| `Table` | 表格 |
+| `Header` | 页眉 |
+| `Footer` | 页脚 |
+| `CodeSnippet` | 代码片段 |
+| `PageNumber` | 页码 |
+| `UncategorizedText` | 其他文本 |
+
+## 元素 ID
+
+元素 ID 是“文本内容 + 页面位置 + 页码 + 文件名”的 SHA-256 哈希值，确保在文件级别上的唯一性和确定性。
+
+## 元数据
+
+xParse 会为每个元素记录丰富的元数据信息，这些信息存储在 `metadata` 字段中。
+
+元素元数据使您能够执行以下操作：
+
+* 根据元素的 `metadata` 值过滤元素。例如，可以只处理特定页面的元素，或者只处理元数据中邮箱地址匹配正则表达式的元素。
+* 将元素映射回原始页面，当元素匹配搜索条件时，可以快速定位到原始页面。
+
+### 元数据字段
+
+常用的 `metadata` 字段如下：
+
+| 字段 | 说明 |
+| --- | --- |
+| `filename` | 文件名 |
+| `filetype` | MIME 类型（如 `application/pdf`、`image/png`） |
+| `last_modified` | 文件最后修改时间（Unix 毫秒时间戳） |
+| `page_number` | 元素所在的页码 |
+| `page_width` | 元素所在的页面的宽度（单位：像素） |
+| `page_height` | 元素所在的页面的高度（单位：像素） |
+| `coordinates` | 元素在页面上的坐标（8位数组，表示四边形四个点，归一化坐标，范围 [0, 1]） |
+| `parent_id` | 父节点 ID（配合层级目录） |
+| `category_depth` | 在同类元素中的层级深度（如 H1=0） |
+| `image_base64` | 图片 base64 编码（仅图片元素，当开启get_sub_image时返回） |
+| `image_mine_type` | 图片 MIME 类型 |
+| `page_image_url` | 页面图片下载链接（当开启get_page_image时返回） |
+| `original_image_url` | 原始页面图片链接（仅在开启预处理参数时返回） |
+| `figure_caption_id` | 图片标题元素ID（仅Image元素） |
+| `text_as_html` | 表格/富文本的 HTML 表示 |
+| `orig_elements` | 分块结果中，形成当前块的原始元素列表（gzip+Base64 压缩串） |
+| `is_continuation` | 分块结果中，当前块是否与上一块连续，属于同一个解析元素（由于max_characters被截断） |
+| `data_source` | 数据源详细信息 |
+
+#### filename / filetype / last_modified
+- `filename`：例如 `annual_report.pdf`，用于溯源。
+- `filetype`：标准 MIME 类型。
+- `last_modified`：毫秒时间戳，便于做增量更新或版本比对。
+
+#### page_number / page_width / page_height
+- `page_number`：元素所在的页码。
+- `page_width`：元素所在的页面的宽度（单位：像素）。
+- `page_height`：元素所在的页面的高度（单位：像素）。
+
+#### coordinates
+- 以长度为 8 的浮点数组表示四边形，8 个数两两一组为一个点的横纵坐标，分别是左上、右上、右下、左下。
+- 坐标为归一化坐标，范围在 [0, 1] 之间，保留4位小数。坐标值相对于页面尺寸（page_width × page_height）进行归一化。
+- 示例：`[0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732]`
+- 常用于高亮定位、截图裁剪或还原源文件的版面。
+
+#### parent_id / category_depth
+- `parent_id`：父节点哈希，可映射章节树或表格/图片的归属关系。
+- `category_depth`：同类型元素的层级深度（如标题等级），便于构建目录。
+
+#### image_base64 / image_mine_type
+- 针对 `Image` 元素，提供直接可用的 base64 编码及 MIME 类型，方便在无对象存储场景下预览。
+- `image_base64`：当开启 `get_sub_image` 时返回，图片元素的base64表示。
+
+#### page_image_url / original_image_url
+- `page_image_url`：页面图片的下载链接。当开启 `get_page_image` 时返回。如果开启了预处理参数（切边增强或去水印），返回的是预处理后的页面图片。
+- `original_image_url`：未经预处理的原始页面图片链接。仅在开启预处理参数（切边增强或去水印）时返回。
+
+#### figure_caption_id
+- 当元素 `type` 为 `Image` 时，`figure_caption_id` 表示对应的图片标题（`type=FigureCaption`）元素的 `element_id`。用于关联图片和其标题。
+
+#### text_as_html
+- 表格或富文本的 HTML 序列化结果，可用于直接渲染或导出。
+
+#### orig_elements
+- chunk 阶段在设置 `include_orig_elements=true`（或系统默认启用）时，记录组成当前块的原始元素。
+- xParse 输出组成当前块的原始元素列表，该列表以 gzip+Base64 压缩串形式出现在 metadata.orig_elements 字段, 要获取原始内容，需要先 Base64-decode 解码，然后 gzip 解压缩，最后转换为 UTF-8 字符串（参考[Chunk结果溯源](/pipeline/chunk#chunk结果溯源)）。
+
+#### is_continuation
+- 标记当前块是否与上一块连续，属于同一个解析元素（由于max_characters被截断）。
+- 仅在 chunk 阶段返回。
+
+#### data_source
+- 数据源信息，包括文件名、文件路径、文件类型、文件大小、文件修改时间等。
+- record_locator：记录原始文件的归档信息，包括协议、远程文件路径等。
+- url：原始文件的 URL 地址。
+- version：原始文件的版本号。
+- date_created：原始文件的创建时间（毫秒时间戳）。
+- date_modified：原始文件的修改时间（毫秒时间戳）。
+- date_processed：原始文件的处理时间（毫秒时间戳）。
+
+
+## 向量表示（Embeddings）
+
+- 当执行 [embed](/pipeline/embed) 阶段后，元素会在**顶层**新增 `embeddings` 字段。
+- `embeddings` 是一个浮点数组（默认为 1024 维），用于语义检索或相似度计算。
+- 如果未执行 embed 阶段，该字段不会出现。
+
+## 完整元素示例
+
+### 示例 1：仅解析后的元素
+
+```json
+{
+    "element_id": "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc",
+    "type": "Title",
+    "text": "xParse 简介",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "last_modified": "1758624866230",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "coordinates": [0.1008, 0.1069, 0.8228, 0.1069, 0.8228, 0.1425, 0.1008, 0.1425],
+        "category_depth": 0,
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        }
+    }
+}
+```
+
+### 示例 2：解析 + 分块后的元素
+
+```json
+{
+    "element_id": "5f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad6",
+    "type": "CompositeElement",
+    "text": "这是由多个原始元素组合而成的文本块。它包含了文档的多个段落，保持了语义的完整性。",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "last_modified": "1758624866230",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "is_continuation": false,
+        "orig_elements": "eJy ... Base64-encoded gzip+UTF-8 string ... x8=",
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        }
+    }
+}
+```
+
+### 示例 3：完整 Pipeline 处理后的元素（解析 + 分块 + 向量化）
+
+```json
+{
+    "element_id": "7c13f49a2bde45f17c13f49a2bde45f17c13f49a2bde45f17c13f49a2bde45f1",
+    "type": "CompositeElement",
+    "text": "最终的文本块示例。",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "orig_elements": "eJy ... Base64-encoded gzip+UTF-8 string ... x8=",
+        "is_continuation": false,
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        }
+    },
+    "embeddings": [0.1, 0.2, 0.3, 0.4, 0.5, ...]
+}
+```
+
+### 示例 4：Image 元素（包含图片存储相关字段）
+
+```json
+{
+    "element_id": "8d24e50b3c9f5be28d24e50b3c9f5be28d24e50b3c9f5be28d24e50b3c9f5be2",
+    "type": "Image",
+    "text": "",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "last_modified": "1758624866230",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "coordinates": [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732],
+        "image_base64": "iVBORw0KGgoAAAANS...",
+        "image_mine_type": "image/png",
+        "page_image_url": "https://your-file-server.com/download?filename=example_page_1_9b46e646.png",
+        "original_image_url": "https://your-file-server.com/download?filename=example_page_1_0b99c0f2.png",
+        "figure_caption_id": "caption_element_id_here",
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        }
+    }
+}
+```
+
+## 使用元数据
+
+### 过滤元素
+
+您可以使用元数据字段来过滤元素。例如，只保留表格且目录深度不超过 1 的元素：
+
+```python
+# 伪代码示例
+for element in elements:
+    type = element['metadata'].get('type', '')
+    depth = element['metadata'].get('category_depth', 0)
+    if type == 'Table' and depth <= 1:
+        process_element(element)
+```
+
+### 追踪原始元素
+
+当使用分块功能时，您可以使用 `orig_elements` 字段来追踪块的来源：
+
+```python
+# 伪代码示例
+import os, base64, zlib
+import json
+
+for element in chunked_elements:
+    orig_elements = element['metadata'].get('orig_elements', '')
+    decoded_orig_elements = base64.b64decode(orig_elements)
+    decompressed_orig_elements = zlib.decompress(decoded_orig_elements)
+    originals = json.loads(decompressed_orig_elements.decode('utf-8'))
+    if originals:
+        print(f"此块由 {len(originals)} 个原始元素组成：{originals}")
+```
+
+### 向量检索
+
+当元素包含 `embeddings` 字段时，您可以使用这些向量进行相似度搜索：
+
+```python
+# 伪代码示例
+from pymilvus import MilvusClient
+
+client = MilvusClient(uri='./vectors.db')
+query_vector = [0.1, 0.2, 0.3, ...]  # 查询向量
+
+results = client.search(
+    collection_name='documents',
+    data=[query_vector],
+    limit=5
+)
+```
+
+## 相关文档
+
+- [数据源连接器](/pipeline/sources) - 了解如何配置数据源
+- [目的地连接器](/pipeline/destinations) - 了解如何配置目标存储
+- [解析模块](/pipeline/parse) - 了解如何解析文档生成元素
+- [分块模块](/pipeline/chunk) - 了解如何将元素分块
+- [向量化模块](/pipeline/embed) - 了解如何为元素生成向量
+- [快速启动](/pipeline/quickstart) - 了解如何使用 Pipeline 处理文档
+

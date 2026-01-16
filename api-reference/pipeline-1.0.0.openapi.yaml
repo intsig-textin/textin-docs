@@ -1,0 +1,693 @@
+openapi: 3.0.3
+info:
+  title: XParse Pipeline API
+  description: |
+    文档解析流水线接口，支持文档解析（Parse）、文本分块（Chunk）和向量化（Embed）的组合处理。
+    
+    **流水线规则**
+    - parse 节点是必需的，且必须是第一个节点
+    - chunk 和 embed 节点是可选的
+    - 如果同时使用 chunk 和 embed，chunk 必须在 embed 之前
+    - 每种类型的节点最多只能出现一次
+    - stages 数组长度必须在 1-3 之间
+  version: 1.0.0
+  contact:
+    name: TextIn API Team
+
+servers:
+  - url: https://api.textin.com
+    description: 生产环境
+
+security:
+  - AppIdAuth: []
+    SecretCodeAuth: []
+
+paths:
+  /api/xparse/pipeline:
+    post:
+      summary: 文档处理流水线
+      description: |
+        执行文档处理流水线，可以组合使用 parse、chunk、embed 三种处理阶段。
+        
+        **流水线规则**
+          - parse 节点是必需的，且必须是第一个节点
+          - chunk 和 embed 节点是可选的
+          - 如果同时使用 chunk 和 embed，chunk 必须在 embed 之前
+          - 每种类型的节点最多只能出现一次
+          - stages 数组长度必须在 1-3 之间
+      operationId: executePipeline
+      tags:
+        - XParse Pipeline
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - stages
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 需要处理的文档文件（支持 PDF、WORD、EXCEL、PPT、图片等[多种格式](/pipeline/sources/overview#支持的文件格式)）
+                stages:
+                  type: string
+                  description: |
+                    流水线配置的 JSON 字符串，必须是 PipelineStage 数组。
+                    注意：虽然这里是 string 类型（因为 form-data 限制），但内容必须是有效的 JSON 数组字符串。
+
+                    **Stages 说明：**
+
+                    Pipeline 接口使用 stages 数组来定义处理流程，每个 stage 包含：
+                    - `type`: 阶段类型，可选值：`parse`、`chunk`、`embed`
+                    - `config`: 该阶段的配置，具体字段取决于阶段类型
+
+                    **使用示例**
+        
+                    仅解析：
+                    ```json
+                    [{"type": "parse", "config": {"provider": "textin"}}]
+                    ```
+                    
+                    解析 + 分块：
+                    ```json
+                    [
+                      {"type": "parse", "config": {"provider": "textin"}},
+                      {"type": "chunk", "config": {"strategy": "basic", "max_characters": 1000}}
+                    ]
+                    ```
+                    
+                    解析 + 分块 + 向量化：
+                    ```json
+                    [
+                      {"type": "parse", "config": {"provider": "textin"}},
+                      {"type": "chunk", "config": {"strategy": "by_title", "max_characters": 500}},
+                      {"type": "embed", "config": {"provider": "qwen", "model_name": "text-embedding-v4"}}
+                    ]
+                    ```
+
+                    **各阶段配置详细说明：**
+
+                    1. **Parse Stage** (`type: "parse"`)
+
+                    Parse 参数中有必填项`provider`，表示文档解析服务的供应商，目前可选项如下：
+                    - textin: 合合信息提供的文档解析服务，在速度、准确性上均为行业领先，适合大多数场景（推荐）
+                    - textin-lite: 全文识别文档解析服务，适合纯文本、表格图片、电子档 pdf 等场景，速度更快，价格更低
+                    - mineru: 基于开源的最新 MinerU vlm 解析引擎，在学术论文等场景表现优异
+                    - paddle: 基于开源的最新 PaddleOCR-VL 解析引擎，在多语言和复杂文档场景（如PPT）表现优异
+
+                    更多解析参数与详情参考[文档解析 - Parse](/pipeline/parse)。
+
+                    2. **Chunk Stage** (`type: "chunk"`)
+
+                    - **strategy** (`string`/必填): 分块策略，默认值：`basic`
+                      - `basic`: 基础分块，按字符数分割
+                      - `by_title`: 按标题分块，保持章节完整性
+                      - `by_page`: 按页面分块，保持页面完整性
+                    - **combine_text_under_n_chars** (`int`/可选): 将同一部分中的元素合并成一个数据块，直到该部分的总长度达到指定字符数。默认值：`None`。可用于将过短的小块合并成较长文本，提高语义连贯性。
+                    - **include_orig_elements** (`bool`/可选): 如果为 `true`，用于构成数据块的原始元素会出现在该数据块的 `.metadata.orig_elements` 中。默认值：`False`。用于调试或需要保留原始元素追溯的场景。
+                    - **new_after_n_chars** (`int`/可选): 当文本长度达到指定字符数时，强制结束当前章节并开始新的章节（近似限制）。默认值：`None`。适用于需要控制章节最大长度的情况下。
+                    - **max_characters** (`int`/可选): 数据块中允许的最大字符数上限。默认值：`None`。用于硬性限制块大小，避免过大块带来的处理延迟或内存占用。
+                    - **overlap** (`int`/可选): 将前一个文本分块末尾指定数量的字符，作为前缀应用到由过大元素分割而成的第二个及后续文本块。默认值：`None`。常用于确保分块之间的上下文连续性。
+                    - **overlap_all** (`bool`/可选): 如果为 `true`，重叠也会应用到由完整元素组合而成的"普通"块。默认值：`False`。谨慎使用，可能在语义上引入噪声。
+
+                    更多分块参数与详情参考[文本分块 - Chunk](/pipeline/chunk)。
+
+                    3. **Embed Stage** (`type: "embed"`)
+
+                    `xparse-client`当前支持的文本向量化模型如下：
+                    - `qwen` 供应商，即通义千问:
+                      - `text-embedding-v3`
+                      - `text-embedding-v4`
+                    - `doubao` 供应商，即火山引擎:
+                      - `doubao-embedding-large-text-250515`
+                      - `doubao-embedding-text-240715`
+                    
+                    更多向量化参数与详情参考[向量化 - Embed](/pipeline/embed)。
+                  example: '[{"type":"parse","config":{"provider":"textin"}}]'
+            encoding:
+              stages:
+                contentType: application/json
+      responses:
+        '200':
+          description: 处理结果
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/codemessage'
+                  - $ref: '#/components/schemas/PipelineResponse'
+              examples:
+                parseOnly:
+                  summary: 仅解析示例
+                  value:
+                    code: 200
+                    message: "success"
+                    elements:
+                      - element_id: "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+                        type: "NarrativeText"
+                        metadata:
+                          filename: "example.pdf"
+                          filetype: "application/pdf"
+                          last_modified: "1758624866230"
+                          page_number: 1
+                          page_width: 1191
+                          page_height: 1684
+                          coordinates: [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732]
+                          parent_id: "23a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+                          category_depth: 1
+                          data_source:
+                            record_locator:
+                              protocol: "file"
+                              remote_file_path: "/projects/demo/example.pdf"
+                            url: "file:///projects/demo/example.pdf"
+                            version: "1758624866230967485"
+                            date_created: "1764555574237"
+                            date_modified: "1758624866230"
+                            date_processed: "1764742970688"
+                        text: "这是解析出的文本内容"
+                    stats:
+                      success_count: 1
+                      original_elements: 10
+                      chunked_elements: 0
+                      embedded_elements: 0
+                      stages:
+                        - type: "parse"
+                          config: {"provider": "textin"}
+                
+                fullPipeline:
+                  summary: 完整流水线示例
+                  value:
+                    code: 200
+                    message: "success"
+                    elements:
+                      - element_id: "5f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad6"
+                        type: "CompositeElement"
+                        metadata:
+                          filename: "example.pdf"
+                          filetype: "application/pdf"
+                          last_modified: "1758624866230"
+                          page_number: 1
+                          page_width: 1191
+                          page_height: 1684
+                          orig_elements: "eJy ... Base64-encoded gzip+UTF-8 string ... x8="
+                          is_continuation: false
+                          data_source:
+                            record_locator:
+                              protocol: "file"
+                              remote_file_path: "/projects/demo/example.pdf"
+                            url: "file:///projects/demo/example.pdf"
+                            version: "1758624866230967485"
+                            date_created: "1764555574237"
+                            date_modified: "1758624866230"
+                            date_processed: "1764742970688"
+                        text: "这是处理后的文本块"
+                        embeddings: [0.1, 0.2, 0.3, 0.4]
+                    stats:
+                      success_count: 1
+                      original_elements: 10
+                      chunked_elements: 15
+                      embedded_elements: 15
+                      stages:
+                        - type: "parse"
+                          config: {"provider": "textin"}
+                        - type: "chunk"
+                          config:
+                            strategy: "basic"
+                            max_characters: 1000
+                        - type: "embed"
+                          config:
+                            provider: "qwen"
+                            model_name: "text-embedding-v4"
+        
+
+components:
+  securitySchemes:
+      AppIdAuth:
+        type: apiKey
+        in: header
+        name: x-ti-app-id
+        description: '请[登录Textin](https://www.textin.com/console/dashboard/setting)后前往 "工作台-账号设置-开发者信息" 查看 x-ti-app-id'
+      SecretCodeAuth:
+        type: apiKey
+        in: header
+        name: x-ti-secret-code
+        description: '请[登录Textin](https://www.textin.com/console/dashboard/setting)后前往 "工作台-账号设置-开发者信息" 查看 x-ti-secret-code'
+
+
+  schemas:
+    codemessage:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          default: 200
+          description: |
+            状态码
+            - 200: Success
+            - 40101: x-ti-app-id 或 x-ti-secret-code 为空
+            - 40102: x-ti-app-id 或 x-ti-secret-code 无效，验证失败
+            - 40004: 参数错误，请查看技术文档，检查传参
+            - 500: 服务器内部错误
+
+            更多详细错误信息参考[错误码说明](/pipeline/error)。
+          enum:
+            - 200
+            - 40101
+            - 40102
+            - 40004
+            - 500
+        message:
+          type: string
+          description: 错误信息
+          example: "success"
+    
+    PipelineResponse:
+      type: object
+      required:
+        - elements
+        - stats
+      properties:
+        elements:
+          type: array
+          description: 处理后的元素列表
+          items:
+            $ref: '#/components/schemas/Element'
+        stats:
+          $ref: '#/components/schemas/PipelineStats'
+    
+    Element:
+      type: object
+      required:
+        - element_id
+        - type
+        - metadata
+        - text
+      properties:
+        element_id:
+          type: string
+          description: 元素唯一标识符
+          example: "elem_001"
+        type:
+          type: string
+          description: 元素类型（如 Title, NarrativeText, Table 等）
+          example: "Title"
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        text:
+          type: string
+          description: 元素的文本内容
+          example: "这是文档中的一段文本"
+        embeddings:
+          type: array
+          description: 向量化后的嵌入向量（仅在执行 embed stage 后存在）
+          items:
+            type: number
+            format: float
+          example: [0.1, 0.2, 0.3, 0.4, 0.5]
+    
+    Metadata:
+      type: object
+      required:
+        - filename
+      properties:
+        filename:
+          type: string
+          description: 文件名
+          example: "example.pdf"
+        filetype:
+          type: string
+          description: 文件类型
+          example: "application/pdf"
+        last_modified:
+          type: string
+          format: date-time
+          description: 文件最后修改时间（Unix 毫秒时间戳）
+          example: "1758624866230"
+        page_number:
+          type: integer
+          description: 元素所在的页码
+          example: 1
+        page_width:
+          type: integer
+          description: 元素所在的页面的宽度（单位：像素）
+          example: 1191
+        page_height:
+          type: integer
+          description: 元素所在的页面的高度（单位：像素）
+          example: 1684
+        parent_id:
+          type: string
+          description: 父元素 ID
+          example: "24a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+        category_depth:
+          type: integer
+          description: 元素在同类元素中的目录深度
+          example: 1
+        coordinates:
+          type: array
+          description: |
+            元素在页面上的坐标。以长度为 8 的浮点数组表示四边形，8 个数两两一组为一个点的横纵坐标，分别是左上、右上、右下、左下。
+            坐标为归一化坐标，范围在 [0, 1] 之间，保留4位小数。坐标值相对于页面尺寸（page_width × page_height）进行归一化。
+          items:
+            type: number
+            format: float
+          minItems: 8
+          maxItems: 8
+          example: [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732]
+        text_as_html:
+          type: string
+          description: 表格或富文本的 HTML 表示
+          example: "<table>...</table>"
+        image_base64:
+          type: string
+          description: |
+            图片的 base64 编码。
+            当开启get_sub_image时返回，图片元素的base64表示。
+        image_mine_type:
+          type: string
+          description: 图片的 MIME 类型
+          example: "image/png"
+        page_image_url:
+          type: string
+          description: |
+            页面图片的下载链接。当开启get_page_image时返回。
+            如果开启预处理参数（切边增强-crop_dewarp、去水印-remove_watermark），
+            返回的是预处理后的页面图片。
+          example: "https://your-file-server.com/download?filename=abc123.png"
+        original_image_url:
+          type: string
+          description: |
+            未经预处理的原始页面图片链接。
+            仅在开启预处理参数（切边增强或去水印）时返回。
+          example: "https://your-file-server.com/download?filename=def456.png"
+        figure_caption_id:
+          type: string
+          description: |
+            当元素type为Image时，表示对应的图片标题（type=FigureCaption）元素id。
+          example: "caption_element_id_here"
+        is_continuation:
+          type: boolean
+          description: 分块结果中，当前块是否与上一块连续，即是否属于同一个解析元素（由于max_characters被截断）（仅 chunk 阶段后）
+        orig_elements:
+          type: array
+          description: 分块结果中，组成当前块的原始元素列表（仅在 chunk 时设置 include_orig_elements 为 true 时存在，格式为 gzip+Base64 压缩串）
+          items:
+            type: string
+          example: "eJy ... Base64-encoded gzip+UTF-8 string ... x8="
+    
+    PipelineStats:
+      type: object
+      required:
+        - success_count
+        - original_elements
+        - chunked_elements
+        - embedded_elements
+        - stages
+      properties:
+        success_count:
+          type: integer
+          description: 处理成功的页数（计费数）。
+          example: 1
+        original_elements:
+          type: integer
+          description: 原始解析的元素数量（parse stage 产生）
+          example: 10
+        chunked_elements:
+          type: integer
+          description: 分块后的元素数量（chunk stage 产生，如果没有执行则为 0）
+          example: 15
+        embedded_elements:
+          type: integer
+          description: 向量化后的元素数量（embed stage 产生，如果没有执行则为 0）
+          example: 15
+        stages:
+          type: array
+          description: 实际执行的 stages 配置
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+    
+    PipelineStage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [parse, chunk, embed]
+          description: |
+            处理阶段类型：
+            - parse: 文档解析
+            - chunk: 文本分块
+            - embed: 向量化
+          example: "parse"
+        config:
+          type: object
+          description: |
+            阶段配置，根据 type 不同有不同的结构：
+            - type=parse: ParseConfig
+            - type=chunk: ChunkConfig
+            - type=embed: EmbedConfig
+          oneOf:
+            - $ref: '#/components/schemas/ParseConfig'
+            - $ref: '#/components/schemas/ChunkConfig'
+            - $ref: '#/components/schemas/EmbedConfig'
+    
+    ParseConfig:
+      type: object
+      required:
+        - provider
+      description: |
+        文档解析配置。支持 PDF、图片等多种文档格式的解析。
+        
+        **支持的 Parser 解析引擎：**
+        - textin: TextIn 自研解析引擎
+        - mineru: MinerU 解析引擎
+        - paddle: PaddleOCR 解析引擎
+      properties:
+        provider:
+          type: string
+          enum: [textin,textin-lite, mineru, paddle]
+          description: |
+            Parser 解析引擎：
+            - textin: TextIn 解析引擎
+            - textin-lite: TextIn 全文识别解析引擎
+            - mineru: MinerU 解析引擎
+            - paddle: PaddleOCR 解析引擎
+          default: "textin"
+          example: "textin"
+        
+        pdf_pwd:
+          type: string
+          description: |
+            PDF 密码。当 PDF 为加密文档时，需要提供密码。
+            
+            **安全提示**：对前端封装该接口参数时，需要自行对密码进行安全防护。
+          example: "password123"
+        
+        page_ranges:
+          type: string
+          description: |
+            PDF 文档的页码范围，格式为逗号分隔的字符串。
+            - 15: 只解析第 15 页
+            - 20-25: 解析第 20 页到第 25 页
+            - 1,3,5-7: 解析第 1、3、5、6、7 页
+          example: "15,20-25,1,3,5-7"
+        
+        parse_mode:
+          type: string
+          enum: [auto, scan]
+          description: |
+            PDF 文档的解析模式。图片不用设置，均默认按 scan 模式处理。
+            
+            - **auto**: 综合文字识别和解析模式，对 PDF 电子档解析会直接提取 PDF 中的文字
+            - **scan**: 仅按文字识别模式，将 PDF 当成图片处理
+          default: "scan"
+          example: "scan"
+        
+        crop_dewarp:
+          type: integer
+          enum: [0, 1]
+          description: |
+            切边矫正。是否进行切边矫正预处理。
+            
+            - **0**: 不进行切边矫正
+            - **1**: 进行切边矫正
+          default: 0
+          example: 0
+
+        remove_watermark:
+          type: integer
+          enum: [0, 1]
+          description: |
+            去水印。是否进行去水印预处理。
+            
+            - **0**: 不去水印
+            - **1**: 去水印
+          default: 0
+          example: 0
+        
+        get_page_image:
+          type: boolean
+          description: |
+            是否返回每一页的图片，适用于PDF等需要转成图片解析的文件。
+            当设置为 true 时，返回结果中会包含 page_image_url 字段。
+          default: false
+          example: false
+        
+        get_sub_image:
+          type: boolean
+          description: |
+            是否返回页面内的子图。
+            当设置为 true 时，返回结果中会包含 image_base64 字段。
+          default: false
+          example: false
+        
+        image_storage_config:
+          type: object
+          description: |
+            S3存储配置，用于存储每页的图片。
+            如果缺省，默认托管在xParse后台，通过xParse提供的链接下载图片。
+            url_prefix用于自定义配置图片下载服务URL前缀，xParse会将图片存储到目标S3，
+            每张图片拥有唯一的hash_id，通过url_prefix + hash_id即可下载图片。
+          properties:
+            endpoint:
+              type: string
+              description: S3端点地址
+              example: "https://s3.oss-cn-beijing.aliyuncs.com"
+            access_key:
+              type: string
+              description: S3 access_key
+            secret_key:
+              type: string
+              description: S3 secret_key
+            bucket:
+              type: string
+              description: S3存储桶名称
+              example: "textin-etl-test"
+            region:
+              type: string
+              description: S3区域
+              example: "cn-beijing"
+            prefix:
+              type: string
+              description: 存储前缀
+              default: ""
+              example: ""
+            url_prefix:
+              type: string
+              description: 自定义配置图片下载服务URL前缀
+              example: "https://your-file-server.com/download?filename="
+        
+        # image_output_type:
+        #   type: string
+        #   enum: [base64str, default]
+        #   description: |
+        #     指定返回的图片对象输出类型。
+            
+        #     - **base64str**: 指定所有图片对象为 base64 字符串，适用于没有云存储的用户，但是引擎返回结果体积会很大
+        #     - **default**: 指定子图片对象为图片 URL，页图片对象为图片 ID
+        #   default: "default"
+        #   example: "default"
+        
+        underline_level:
+          type: integer
+          enum: [0, 1]
+          description: |
+            控制下划线识别范围。
+            
+            - **0**: 不识别
+            - **1**: 仅识别无文字的下划线（仅 scan 模式可用）
+          default: 0
+          example: 0  
+    
+    ChunkConfig:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [basic, by_title, by_page]
+          description: |
+            分块策略：
+            - basic: 基础分块（按字符数切分）
+            - by_title: 按标题切分
+            - by_page: 按页面切分
+          default: "basic"
+          example: "basic"
+        include_orig_elements:
+          type: boolean
+          description: 是否在 metadata 中包含原始元素信息
+          default: false
+          example: true
+        new_after_n_chars:
+          type: integer
+          description: 在多少字符后创建新块
+          example: 800
+        max_characters:
+          type: integer
+          description: 每个块的最大字符数
+          default: 1000
+          example: 1000
+        overlap:
+          type: integer
+          description: 相邻块之间的重叠字符数
+          example: 100
+    
+    EmbedConfig:
+      type: object
+      required:
+        - provider
+        - model_name
+      properties:
+        provider:
+          type: string
+          enum: [qwen, doubao]
+          description: |
+            Embedding 供应商：
+            - qwen: 阿里云通义千问
+            - doubao: 字节跳动豆包
+          default: "qwen"
+          example: "qwen"
+        model_name:
+          type: string
+          description: |
+            模型名称，必须与 provider 匹配：
+            
+            **Qwen 支持的模型：**
+            - text-embedding-v3
+            - text-embedding-v4
+            
+            **Doubao 支持的模型：**
+            - doubao-embedding-large-text-250515
+            - doubao-embedding-text-240715
+          default: "text-embedding-v4"
+          example: "text-embedding-v4"
+          enum:
+            - text-embedding-v3
+            - text-embedding-v4
+            - doubao-embedding-large-text-250515
+            - doubao-embedding-text-240715
+    
+
+tags:
+  - name: XParse Pipeline
+    description: |
+      文档处理流水线接口
+      
+      ## 功能特性
+      - 🔄 灵活的流水线配置：可自由组合 parse、chunk、embed 三种处理阶段
+      - 📄 多格式支持：支持 PDF、图片等多种文档格式
+      - 🧩 智能分块：支持基础、按标题、按页面三种分块策略
+      - 🤖 多模型支持：支持通义千问和豆包的多种 embedding 模型
+      - 📊 处理统计：返回详细的处理统计信息
+      
+      ## 计费说明
+      - 按照 parse 阶段处理的页数计费
+      - chunk 和 embed 阶段不额外收费
+      - 计费信息通过 x-ti-app-id 和 x-ti-secret-code 进行关联
+

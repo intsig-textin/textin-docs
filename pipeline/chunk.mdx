@@ -1,0 +1,465 @@
+---
+title: "文本分块 - Chunk"
+description: "了解 xParse 中的文本分块模块，将文档元素组合成适合向量化的块"
+---
+
+## 概念
+
+文本分块是将[解析](/pipeline/parse)得到的文档元素重新组合成更小、更易管理的块，以适应嵌入模型的限制并提高检索精度。
+
+与将整个文档作为单个文本块处理不同，分块可以将文档拆分为更小的语义相关片段。这对向量化、检索和后续处理都很重要，原因如下：
+
+- **嵌入模型限制**：大多数嵌入模型对输入文本长度有限制
+- **检索精度**：较小的块可以提高检索精度，帮助您找到更相关的信息
+- **上下文管理**：分块有助于更好地管理文档的上下文信息
+
+## 用途
+
+文本分块的主要用途：
+
+- **优化嵌入**：确保每个块的大小适合嵌入模型的输入限制
+- **提高检索精度**：将文档拆分为更小的块，可以更精确地检索相关信息
+- **保持语义完整性**：根据不同的分块策略，可以保持章节、页面等语义边界
+- **支持重叠**：通过块之间的重叠，确保上下文连续性
+
+## 分块策略
+
+xParse 支持三种分块策略，每种策略适用于不同的场景：
+
+### basic（基础分块）
+
+**描述**：将连续的元素组合，按字符数切分，遵守最大字符数限制。该策略同时使用 `max_characters`（“硬”限制）与 `new_after_n_chars`（“软”限制）控制块大小：元素会被持续追加到当前块，直到软限制被触发；一旦软限制触发或硬限制达到，就开启新块，且不会超过硬限制。
+
+**工作原理**：
+
+- 元素在追加到当前块前会检查：
+  1. 若追加后超过硬限制（情形 1），直接将该元素放到下一个块。
+  2. 若超过软限制但仍在硬限制内（情形 2/3），新元素会成为下一个块的起始元素。
+- 对于超出 `max_characters` 的单个元素，会在空格或换行处分裂成多个块，避免截断词语。
+- 表格元素始终视为独立块；如表格过大，会按行拆分成多个 `TableChunk`。
+
+![Chunking with hard and soft limits](https://static.textin.com/docs/images/chunk/chunk_soft_hard_limits.svg)
+
+{/* **视觉示例（200 字符硬限制）**：
+
+- 文本元素：每个块尽量贴近硬限制，不考虑句子边界  
+  ![Basic chunking of text with a 200-character hard limit](https://static.textin.com/docs/images/chunk/Chunk-By-Character-200-Paragraph.avif)
+- 表格元素：按行作为天然边界
+  ![Basic chunking of a table with a 200-character hard limit](https://static.textin.com/docs/images/chunk/Chunk-By-Character-200-Table.avif) */}
+
+**支持重叠（overlap）**：
+
+- `overlap` 设置会把上一个块末尾的指定字符数复制到下一个块开头，以提升搜索召回。
+- `overlap_all=true` 时，所有块都会重叠；默认仅对超过硬限制被强制拆分的块生效。
+- 重叠计入块长度，仍需满足 `max_characters`。
+
+![Chunking overlap](https://static.textin.com/docs/images/chunk/Chunking_Overlap_All.avif)
+{/* ![Basic chunking overlap 25](https://static.textin.com/docs/images/chunk/Chunk-By-Character-200-Overlap-25.avif) */}
+
+**适用场景**：
+- 一般文档处理
+- 对文档结构要求不高的场景
+- 需要快速处理的场景
+
+**特点**：
+- 简单高效
+- 按固定字符数分割
+- 不保留章节或页面边界
+
+### by_title（按标题分块）
+
+**描述**：根据标题（`Title` 元素）分块，尽可能保持章节语义。当遇到新标题时，无论当前块是否达到硬限制，都会立即结束当前块并开启新块。`max_characters` 与 `new_after_n_chars` 仍然生效，用于控制章节内部块大小。
+
+**工作原理**：
+
+- 标题元素作为块头部，块内包含其后出现的非标题元素，直到软/硬限制或遇到下一个标题。
+- 如果连续出现多个标题，可搭配 `combine_text_under_n_characters` 合并短内容，避免生成大量碎片块。
+- 同一块不会包含多个章节的正文（即不会跨标题）。
+
+![Chunking by title](https://static.textin.com/docs/images/chunk/Chunking_By_Title.avif)
+![Many titles lead to many chunks](https://static.textin.com/docs/images/chunk/Chunking_By_Title_Segmentation.avif)
+![Combine text under n characters](https://static.textin.com/docs/images/chunk/Chunking_Combine_Text.avif)
+{/* ![Chunk by title 200 characters](https://static.textin.com/docs/images/chunk/Chunk-By-Title-200-Paragraph.avif) */}
+
+**适用场景**：
+- 结构化文档（如技术文档、产品手册）
+- 需要保持章节完整性的场景
+- 有明确标题层级的文档
+
+**特点**：
+- 保持章节完整性
+- 尊重文档的标题结构
+- 适合有明确章节划分的文档
+
+### by_page（按页面分块）
+
+**描述**：按页面边界分块，确保单个块只包含同一页的内容。即使块尚未达到 `max_characters`，但只要遇到新的页面，就会立即结束当前块并在下一页开启新块。
+
+**工作原理**：
+
+- 每当检测到页面切换，当前块立刻闭合，即便剩余空间尚多。
+- 块大小仍受 `max_characters` 限制；如单页内容过长，会在当页内按硬/软限制继续拆分。
+- 适合需要保留页码、页脚或注释信息的场景。
+
+{/* ![Chunking by page 200 characters](https://static.textin.com/docs/images/chunk/Chunk-By-Page-200.avif) */}
+
+**适用场景**：
+- PDF 文档处理
+- 需要保持页面完整性的场景
+- 跨页内容需要关联的场景
+
+**特点**：
+- 保持页面完整性
+- 适合 PDF 文档
+- 便于追溯原始页面
+
+## 参数说明
+
+### strategy
+
+**类型**: `string`  
+**必填**: 否  
+**默认值**: `"basic"`  
+**可选值**: `basic` | `by_title` | `by_page`
+
+分块策略选择。详见[分块策略](#分块策略)部分。
+
+### include_orig_elements
+
+**类型**: `boolean`  
+**必填**: 否  
+**默认值**: `false`
+
+是否在 metadata 中包含原始元素信息。设置为 `true` 时，分块后的元素会在 `metadata.orig_elements` 字段中记录组成该块的所有原始元素的信息。
+
+### new_after_n_chars
+
+**类型**: `integer`  
+**必填**: 否  
+**默认值**: `512`
+
+达到多少字符后创建新块（近似限制）。当块达到此字符数时，系统会考虑创建新块。这是一个近似值，实际分块会根据策略和内容进行调整。
+
+### max_characters
+
+**类型**: `integer`  
+**必填**: 否  
+**默认值**: `1024`
+
+每个块的最大字符数上限。这是硬性限制，确保块不会超过此大小。如果单个元素超过此限制，会被截断或单独处理。
+
+### overlap
+
+**类型**: `integer`  
+**必填**: 否  
+**默认值**: `0`
+
+相邻块之间的重叠字符数。重叠可以确保分块之间的上下文连续性，有助于提高检索质量。
+
+例如，`overlap=100` 时，相邻的两个块会有 100 个字符的重叠。
+
+## Chunk 后的数据结构
+
+xParse 在 chunk 阶段同样只输出以下几类元素：
+
+| 元素类型 | 说明 |
+| --- | --- |
+| `CompositeElement` | 由 1 个或多个文本元素组合而成的块，是最常见的 chunk 类型 |
+| `Table` | 当表格大小低于 `max_characters` 时保持原样 |
+| `TableChunk` | 当表格过大时按行拆分成多个 `TableChunk` |
+
+> ℹ️ `Image` 元素不会在 chunk 结果中保留。但如果启用 `include_orig_elements`，可在 `orig_elements` 内找到对应图片的 `image_base64` 信息。
+
+### metadata.orig_elements
+
+当启用 **include_orig_elements** 时，xParse 会在 chunk 结果的 `metadata.orig_elements` 中记录原始元素：
+`orig_elements` 会是一串压缩后的 JSON，需按"Base64 → gzip → UTF-8"顺序解码才能获取原文（用于保留图片/表格的原始元信息，支持快速回溯）。可参考[Chunk结果溯源](#chunk结果溯源)。
+
+
+
+### metadata.is_continuation
+
+`is_continuation` 用于标记 **chunk 阶段**之后当前块是否与上一块连续，即是否属于同一个解析元素（由于max_characters被截断）。
+
+更多基础字段请参考[文档元素和元数据](/pipeline/elements-metadata)。
+
+## 输出结果说明
+
+综合以上规则，chunk 后的元素具有以下特性：
+
+- **type**：仅可能是 `CompositeElement`、`Table` 或 `TableChunk`。
+- **text**：可能由多个原始段落拼接而成，或是拆分大表格后的片段。
+- **metadata**：
+  - 保留基础字段（如 `filename`、`filetype`、`page_number`等）。
+  - `orig_elements` 指向原始元素，用于还原上下文。
+  - 大表格拆分时，后续块的 `metadata` 中会自动复用 `text_as_html` 等信息，保证结构完整。
+
+### 分块后的元素示例
+
+#### CompositeElement
+
+```json
+{
+    "element_id": "5f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad6",
+    "type": "CompositeElement",
+    "text": "这是由多个原始元素组合而成的文本块。它包含了文档的多个段落，保持了语义的完整性。",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "last_modified": "1758624866230",
+        "page_number": 1,
+        "page_width": 1191,
+        "page_height": 1684,
+        "orig_elements": "eJy ... Base64-encoded gzip+UTF-8 string ... x8=",
+        "is_continuation": false,
+        "data_source": {
+            "record_locator": {
+                "protocol": "file",
+                "remote_file_path": "/projects/demo/example.pdf"
+            },
+            "url": "file:///projects/demo/example.pdf",
+            "version": "1758624866230967485",
+            "date_created": "1764555574237",
+            "date_modified": "1758624866230",
+            "date_processed": "1764742970688"
+        }
+    }
+}
+```
+
+#### Table
+```json
+{
+    "element_id": "dfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6",
+    "type": "Table",
+    "text": "这是表格内容",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "text_as_html": "<table>...</table>",
+        "orig_elements": "eJy ... Base64-encoded gzip+UTF-8 string ... x8=",
+        ...other metadata...
+    }
+}
+```
+#### TableChunk
+
+```json
+{
+    "element_id": "dfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6",
+    "type": "TableChunk",
+    "text": "这是表格的一部分内容...",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "orig_elements": "eJy ... Base64-encoded gzip+UTF-8 string ... x8=",
+        ...other metadata...
+    }
+},
+{
+    "element_id": "dfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6fdfe41a2b3c4d5e6",
+    "type": "TableChunk",
+    "text": "...这是表格的另一部分内容",
+    "metadata": {
+        "filename": "example.pdf",
+        "filetype": "application/pdf",
+        "is_continuation": true,
+        "orig_elements": "eJz ... Base64-encoded gzip+UTF-8 string ... kw=",
+        ...other metadata...
+    }
+}
+```
+
+## Chunk结果溯源
+
+分块后 `medata.orig_elements` 中存储的了组成对应分块的所有原文信息（元素列表），格式为 gzip 压缩后的 base64 字符串，需按"Base64 → gzip → UTF-8"顺序解码才能获取原文。
+
+```python
+import base64
+import zlib
+import json
+
+def extract_orig_elements(orig_elements):
+    decoded = base64.b64decode(orig_elements)
+    decompressed = zlib.decompress(decoded)
+    return json.loads(decompressed.decode('utf-8'))
+
+result = extract_orig_elements(element['metadata']['orig_elements'])
+print(result)
+```
+
+## 使用示例
+
+### 示例 1：基础分块
+
+```python
+from xparse_client import (
+    Pipeline,
+    LocalSource,
+    LocalDestination,
+    Stage,
+    ParseConfig,
+    ChunkConfig,
+    EmbedConfig
+)
+
+# 创建数据源
+source = LocalSource(
+    directory='./documents',
+    pattern=['*.pdf']
+)
+
+# 创建目标存储
+destination = LocalDestination(
+    output_dir='./output'
+)
+
+# 创建配置对象
+parse_config = ParseConfig(provider='textin')
+chunk_config = ChunkConfig(
+    strategy='basic',
+    max_characters=1024,
+    overlap=0
+)
+embed_config = EmbedConfig(provider='qwen', model_name='text-embedding-v3')
+
+# 创建 Pipeline
+pipeline = Pipeline(
+    source=source,
+    destination=destination,
+    api_base_url='https://api.textin.com/api/xparse',
+    api_headers={
+        'x-ti-app-id': 'your-app-id',
+        'x-ti-secret-code': 'your-secret-code'
+    },
+    stages=[
+        Stage(
+            type='parse',
+            config=parse_config
+        ),
+        Stage(
+            type='chunk',
+            config=chunk_config
+        ),
+        Stage(
+            type='embed',
+            config=embed_config
+        )
+    ]
+)
+
+pipeline.run()
+```
+
+### 示例 2：按标题分块（保持章节完整性）
+
+```python
+from xparse_client import ChunkConfig
+
+# 创建分块配置，按标题分块
+chunk_config = ChunkConfig(
+    strategy='by_title',
+    include_orig_elements=True,  # 保留原始元素
+    new_after_n_chars=512,
+    max_characters=1536,
+    overlap=100  # 章节间重叠 100 字符
+)
+
+# 在 Pipeline 中使用
+# pipeline = Pipeline(
+#     source=source,
+#     destination=destination,
+#     stages=[
+#         Stage(type='parse', config=parse_config),  # parse 是必需的
+#         Stage(type='chunk', config=chunk_config)
+#     ],
+#     # ... 其他配置
+# )
+```
+
+### 示例 3：按页面分块（保持页面完整性）
+
+```python
+from xparse_client import ChunkConfig
+
+# 创建分块配置，按页面分块
+chunk_config = ChunkConfig(
+    strategy='by_page',
+    include_orig_elements=True,
+    max_characters=2048,  # PDF 页面可能较长
+    overlap=150  # 页面间重叠，保持上下文
+)
+
+# 在 Pipeline 中使用
+# pipeline = Pipeline(
+#     source=source,
+#     destination=destination,
+#     stages=[
+#         Stage(type='parse', config=parse_config),  # parse 是必需的
+#         Stage(type='chunk', config=chunk_config)
+#     ],
+#     # ... 其他配置
+# )
+```
+
+### 示例 4：带重叠的分块
+
+```python
+from xparse_client import ChunkConfig
+
+# 创建分块配置，启用重叠
+chunk_config = ChunkConfig(
+    strategy='basic',
+    max_characters=1024,
+    overlap=50,  # 块之间重叠 50 字符
+    new_after_n_chars=512
+)
+
+# 在 Pipeline 中使用
+# pipeline = Pipeline(
+#     source=source,
+#     destination=destination,
+#     stages=[
+#         Stage(type='parse', config=parse_config),  # parse 是必需的
+#         Stage(type='chunk', config=chunk_config)
+#     ],
+#     # ... 其他配置
+# )
+```
+
+## 分块策略选择建议
+
+### 何时使用 basic
+
+- 文档结构简单，没有明确的章节划分
+- 需要快速处理，对结构要求不高
+- 一般性的文档处理场景
+
+### 何时使用 by_title
+
+- 文档有明确的标题层级（如技术文档、产品手册）
+- 需要保持章节完整性
+- 希望检索结果能够包含完整的章节内容
+
+### 何时使用 by_page
+
+- 处理 PDF 文档
+- 需要保持页面完整性
+- 需要追溯原始页面位置
+- 跨页内容需要关联
+
+## 最佳实践
+
+1. **选择合适的策略**：根据文档类型和业务需求选择合适的分块策略
+2. **设置合理的块大小**：`max_characters` 应该根据嵌入模型的限制和业务需求设置
+3. **使用重叠**：适度的重叠（50-150 字符）可以提高检索质量
+4. **保留原始元素信息**：如果需要在后续处理中追溯原始元素，设置 `include_orig_elements=true`
+5. **测试和优化**：根据实际效果调整分块参数
+
+## 相关文档
+
+- [文档元素和元数据](/pipeline/elements-metadata) - 了解元素结构和元数据字段
+- [解析模块](/pipeline/parse) - 了解如何解析文档生成元素
+- [向量化模块](/pipeline/embed) - 了解如何对分块后的元素进行向量化
+- [快速启动](/pipeline/quickstart) - 了解如何使用 Pipeline 处理文档
+

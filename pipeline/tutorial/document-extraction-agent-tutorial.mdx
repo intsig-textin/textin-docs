@@ -1,0 +1,644 @@
+---
+title: "单据录入Agent：发票合同订单自动化处理"
+description: "使用 xParse + LangChain 构建单据提取Agent，实现发票、合同、订单等单据的自动化信息提取和数据验证"
+---
+
+<Tip>
+  本教程面向单据处理场景，展示如何利用 xParse 解析单据文档，然后通过大模型自动提取结构化信息并进行数据验证。
+</Tip>
+
+## 场景介绍
+
+### 业务痛点
+
+在财务和采购场景中，企业面临以下挑战：
+
+- **单据量大**：需要处理大量发票、合同、订单、收据等单据
+- **信息提取繁琐**：需要从单据中提取关键信息（金额、税号、日期、商品明细等）
+- **数据验证困难**：需要验证数据的完整性和准确性（金额计算、日期合理性等）
+- **格式多样**：单据格式不统一，有PDF、图片、扫描件等
+- **人工成本高**：手动录入和核对效率低，容易出错
+
+### 解决方案
+
+通过构建单据提取Agent，我们可以实现：
+
+- **自动化单据解析**：使用 xParse Pipeline 自动解析各类单据（OCR + 表格识别）
+- **智能信息提取**：调用大模型从解析后的文本中提取结构化信息（发票信息、合同条款、订单明细等）
+- **数据验证**：自动验证提取的数据（金额校验、日期检查、必填项检查等）
+- **批量处理**：支持批量处理大量单据
+- **结果可视化**：保留坐标信息，便于可视化验证
+
+## 架构设计
+
+```
+单据文档（PDF/图片/扫描件）
+    ↓
+[xParse Pipeline]
+    ├─ Parse: 解析单据（OCR+表格识别）
+    └─ Chunk: 按页面分块（单据通常单页）
+    ↓
+解析结果（JSON格式，包含文本和元数据）
+    ↓
+[LangChain Agent]
+    ├─ Tool 1: extract_invoice_info（提取发票信息）
+    ├─ Tool 2: extract_contract_info（提取合同信息）
+    ├─ Tool 3: extract_order_info（提取订单信息）
+    └─ Tool 4: validate_data（数据验证）
+    ↓
+结构化数据（JSON）+ 验证报告
+```
+
+**核心思路**：xParse 负责将单据解析成文本，大模型负责从文本中提取结构化信息，无需向量数据库。
+
+## 环境准备
+
+首先安装必要的依赖：
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install "xparse-client>=0.2.10" langchain langchain-community langchain-core \
+            python-dotenv dashscope
+```
+
+创建 `.env` 文件存储配置：
+
+```bash
+# .env
+X_TI_APP_ID=your-app-id
+X_TI_SECRET_CODE=your-secret-code
+DASHSCOPE_API_KEY=your-dashscope-key
+```
+
+> 提示：`X_TI_APP_ID` 与 `X_TI_SECRET_CODE` 参考 [API Key](/pipeline/api-key)，请登录 [Textin 工作台](https://www.textin.com/console/dashboard/setting) 获取。示例中使用 `通义千问` 的大模型能力，其他模型用法类似。
+
+## 完整代码示例
+
+下面是一个完整的、可以直接运行的示例：
+
+```python expandable
+import os
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+from xparse_client import create_pipeline_from_config
+from langchain_core.tools import Tool
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
+from langchain_community.chat_models import ChatTongyi
+
+# 加载环境变量
+load_dotenv()
+
+# ========== Step 1: 初始化 xParse Pipeline ==========
+
+DOCUMENT_PIPELINE_CONFIG = {
+    "source": {
+        "type": "local",
+        "directory": "/your/doc/folder",  # 单据存放目录
+        "pattern": ["*.pdf", "*.png", "*.jpg", "*.jpeg"]  # 支持PDF和图片格式
+    },
+    "destination": {
+        "type": "local",  # 输出到本地文件系统
+        "output_dir": "./parsed_documents"  # 解析结果存放目录
+    },
+    "api_base_url": "https://api.textin.com/api/xparse",
+    "api_headers": {
+        "x-ti-app-id": os.getenv("X_TI_APP_ID"),
+        "x-ti-secret-code": os.getenv("X_TI_SECRET_CODE")
+    },
+    "stages": [
+        {
+            "type": "parse",
+            "config": {
+                "provider": "textin",  # 使用TextIn解析引擎，OCR效果好
+                "parse_mode": "scan"  # 扫描模式，适合图片和扫描件
+            }
+        },
+        {
+            "type": "chunk",
+            "config": {
+                "strategy": "by_page",  # 按页面分块，单据通常单页
+                "include_orig_elements": True,  # 保留原始元素和坐标信息
+                "max_characters": 2048,  # 单据页面可能较长
+                "overlap": 0  # 单据通常单页，不需要重叠
+            }
+        }
+        # 注意：不需要 embed 阶段，直接使用解析后的文本
+    ]
+}
+
+# 初始化 Pipeline（全局复用）
+pipeline = create_pipeline_from_config(DOCUMENT_PIPELINE_CONFIG)
+
+def process_documents() -> str:
+    """处理单据文档"""
+    try:
+        pipeline.run()
+        return "✅ 已处理所有单据文件，解析结果已保存到 ./parsed_documents 目录。"
+    except Exception as e:
+        return f"❌ 处理文档时出错：{str(e)}"
+
+def process_single_file(file_path: str) -> str:
+    """处理单个文件"""
+    try:
+        file_bytes = pipeline.source.read_file(file_path)
+        success = pipeline.process_file(file_bytes, file_path)
+        if success:
+            return f"✅ 成功处理文件 {file_path}，解析结果已保存。"
+        else:
+            return f"❌ 处理文件 {file_path} 失败。"
+    except Exception as e:
+        return f"❌ 处理文件 {file_path} 时出错：{str(e)}"
+
+def load_parsed_document(filename: str) -> dict:
+    """加载解析后的文档"""
+    output_dir = Path("./parsed_documents")
+    # 查找对应的 JSON 文件
+    json_files = list(output_dir.glob(f"{Path(filename).stem}*.json"))
+    if not json_files:
+        return None
+    
+    with open(json_files[0], 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    # 提取所有页面的文本内容
+    pages_text = []
+    for element in data:
+        pages_text.append({
+            "page_number": element['metadata'].get('page_number', 0),
+            "text": element['text'].strip()
+        })
+    
+    return {
+        "filename": filename,
+        "pages": pages_text,
+        "full_text": "\n\n".join([p["text"] for p in pages_text])
+    }
+
+# ========== Step 2: 初始化大模型 ==========
+
+llm = ChatTongyi(
+    model="qwen-max",
+    top_p=0.8,
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+)
+
+# ========== Step 3: 构建 LangChain Tools ==========
+
+def extract_invoice_info(query: str) -> str:
+    """
+    从发票中提取结构化信息
+    
+    提取内容包括：
+    - 发票基本信息（发票号码、发票代码、开票日期）
+    - 销售方信息（名称、税号、地址、电话）
+    - 购买方信息（名称、税号、地址、电话）
+    - 商品明细（名称、规格、数量、单价、金额、税率）
+    - 金额信息（合计金额、税额、价税合计）
+    """
+    # 从查询中提取文件名（简化处理）
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取发票信息 文件:发票.pdf"
+    
+    # 加载解析后的文档
+    doc = load_parsed_document(filename)
+    if not doc:
+        return f"❌ 未找到文件 {filename} 的解析结果，请先运行文档处理。"
+    
+    # 构建提取提示
+    prompt = f"""请从以下发票文本中提取结构化信息，返回JSON格式：
+
+发票文本：
+{doc['full_text']}
+
+请提取以下信息并返回JSON格式：
+{{
+    "invoice_basic": {{
+        "invoice_no": "发票号码",
+        "invoice_code": "发票代码",
+        "invoice_date": "开票日期"
+    }},
+    "seller_info": {{
+        "name": "销售方名称",
+        "tax_no": "销售方税号",
+        "address": "销售方地址",
+        "phone": "销售方电话"
+    }},
+    "buyer_info": {{
+        "name": "购买方名称",
+        "tax_no": "购买方税号",
+        "address": "购买方地址",
+        "phone": "购买方电话"
+    }},
+    "items": [
+        {{
+            "name": "商品名称",
+            "spec": "规格型号",
+            "quantity": "数量",
+            "unit_price": "单价",
+            "amount": "金额",
+            "tax_rate": "税率"
+        }}
+    ],
+    "amounts": {{
+        "subtotal": "合计金额",
+        "tax": "税额",
+        "total": "价税合计"
+    }}
+}}
+
+只返回JSON，不要其他文字。"""
+    
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        result = json.loads(response.content)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def extract_contract_info(query: str) -> str:
+    """
+    从合同中提取关键信息
+    
+    提取内容包括：
+    - 合同基本信息（合同编号、签署日期、生效日期、到期日期）
+    - 签约方信息（甲方、乙方、联系方式）
+    - 合同金额（合同总价、付款方式、付款期限）
+    - 关键条款（违约责任、争议解决、合同期限等）
+    """
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取合同信息 文件:合同.pdf"
+    
+    doc = load_parsed_document(filename)
+    if not doc:
+        return f"❌ 未找到文件 {filename} 的解析结果，请先运行文档处理。"
+    
+    prompt = f"""请从以下合同文本中提取关键信息，返回JSON格式：
+
+合同文本：
+{doc['full_text']}
+
+请提取以下信息并返回JSON格式：
+{{
+    "contract_basic": {{
+        "contract_no": "合同编号",
+        "sign_date": "签署日期",
+        "effective_date": "生效日期",
+        "expiry_date": "到期日期"
+    }},
+    "parties": {{
+        "party_a": "甲方名称",
+        "party_b": "乙方名称",
+        "party_a_contact": "甲方联系方式",
+        "party_b_contact": "乙方联系方式"
+    }},
+    "amount": {{
+        "total": "合同总价",
+        "payment_method": "付款方式",
+        "payment_term": "付款期限"
+    }},
+    "key_terms": {{
+        "breach": "违约责任",
+        "dispute": "争议解决",
+        "term": "合同期限"
+    }}
+}}
+
+只返回JSON，不要其他文字。"""
+    
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        result = json.loads(response.content)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def extract_order_info(query: str) -> str:
+    """
+    从订单中提取信息
+    
+    提取内容包括：
+    - 订单基本信息（订单号、下单日期、交货日期）
+    - 客户信息（客户名称、联系方式、地址）
+    - 商品明细（商品名称、规格、数量、单价、金额）
+    - 金额信息（订单总额、运费、优惠金额）
+    """
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取订单信息 文件:订单.pdf"
+    
+    doc = load_parsed_document(filename)
+    if not doc:
+        return f"❌ 未找到文件 {filename} 的解析结果，请先运行文档处理。"
+    
+    prompt = f"""请从以下订单文本中提取信息，返回JSON格式：
+
+订单文本：
+{doc['full_text']}
+
+请提取以下信息并返回JSON格式：
+{{
+    "order_basic": {{
+        "order_no": "订单号",
+        "order_date": "下单日期",
+        "delivery_date": "交货日期"
+    }},
+    "customer_info": {{
+        "name": "客户名称",
+        "contact": "联系方式",
+        "address": "地址"
+    }},
+    "items": [
+        {{
+            "name": "商品名称",
+            "spec": "规格",
+            "quantity": "数量",
+            "unit_price": "单价",
+            "amount": "金额"
+        }}
+    ],
+    "amounts": {{
+        "subtotal": "订单总额",
+        "shipping": "运费",
+        "discount": "优惠金额",
+        "total": "实付金额"
+    }}
+}}
+
+只返回JSON，不要其他文字。"""
+    
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        result = json.loads(response.content)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def validate_data(query: str) -> str:
+    """
+    验证提取的数据
+    
+    验证项包括：
+    - 必填项检查（发票号码、金额等）
+    - 金额计算验证（明细金额之和是否等于合计）
+    - 日期合理性检查（日期不能是未来日期等）
+    - 格式验证（税号格式、电话号码格式等）
+    """
+    # 这里简化处理，实际应该接收已提取的数据进行验证
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：验证数据 文件:发票.pdf"
+    
+    doc = load_parsed_document(filename)
+    if not doc:
+        return f"❌ 未找到文件 {filename} 的解析结果。"
+    
+    prompt = f"""请验证以下单据文本中的数据，返回JSON格式的验证报告：
+
+单据文本：
+{doc['full_text']}
+
+请检查以下项目并返回JSON格式：
+{{
+    "file": "{filename}",
+    "checks": [
+        {{
+            "type": "必填项检查",
+            "status": "pass/fail/warning",
+            "message": "检查结果说明"
+        }},
+        {{
+            "type": "金额计算验证",
+            "status": "pass/fail/warning",
+            "message": "检查结果说明"
+        }},
+        {{
+            "type": "日期合理性检查",
+            "status": "pass/fail/warning",
+            "message": "检查结果说明"
+        }},
+        {{
+            "type": "格式验证",
+            "status": "pass/fail/warning",
+            "message": "检查结果说明"
+        }}
+    ],
+    "overall_status": "pass/fail/warning"
+}}
+
+只返回JSON，不要其他文字。"""
+    
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        result = json.loads(response.content)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 验证数据时出错：{str(e)}"
+
+# 定义工具列表
+tools = [
+    Tool(
+        name="process_documents",
+        description="处理单据文档，将PDF/图片解析成文本。输入可以是'处理所有文档'或文件路径。",
+        func=lambda q: process_documents() if "所有" in q else process_single_file(q)
+    ),
+    Tool(
+        name="extract_invoice_info",
+        description="从发票中提取结构化信息，包括发票号码、开票日期、销售方信息、购买方信息、商品明细、金额信息等。输入格式：提取发票信息 文件:发票.pdf",
+        func=extract_invoice_info
+    ),
+    Tool(
+        name="extract_contract_info",
+        description="从合同中提取关键信息，包括合同编号、签署日期、签约方信息、合同金额、关键条款等。输入格式：提取合同信息 文件:合同.pdf",
+        func=extract_contract_info
+    ),
+    Tool(
+        name="extract_order_info",
+        description="从订单中提取信息，包括订单号、下单日期、客户信息、商品明细、金额信息等。输入格式：提取订单信息 文件:订单.pdf",
+        func=extract_order_info
+    ),
+    Tool(
+        name="validate_data",
+        description="验证提取的数据，包括必填项检查、金额计算验证、日期合理性检查、格式验证等。输入格式：验证数据 文件:发票.pdf",
+        func=validate_data
+    )
+]
+
+# ========== Step 4: 初始化 Agent ==========
+
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    debug=True,  # 显示 Agent 的思考过程
+    system_prompt="""你是一个专业的单据处理助手。你的任务是帮助用户：
+1. 处理单据文档（解析PDF/图片成文本）
+2. 从发票、合同、订单中提取关键信息
+3. 验证提取的数据完整性和准确性
+4. 检查数据格式和合理性
+
+在回答时，请：
+- 先处理文档（如果还没有解析结果）
+- 提供结构化的提取结果（JSON格式）
+- 明确标注验证结果（通过/失败/警告）
+- 如果发现问题，说明具体的问题和建议
+- 使用工具获取准确的信息，不要猜测
+""")
+
+# ========== Step 5: 使用示例 ==========
+
+if __name__ == "__main__":
+    # 示例 1: 处理文档
+    print("=" * 60)
+    print("示例 1: 处理文档")
+    print("=" * 60)
+    response = agent.invoke({
+        "messages": [HumanMessage(content="请处理所有单据文档")]
+    })
+    print(response["messages"][-1].content)
+    print()
+    
+    # 示例 2: 提取发票信息
+    print("=" * 60)
+    print("示例 2: 提取发票信息")
+    print("=" * 60)
+    response = agent.invoke({
+        "messages": [HumanMessage(content="从发票中提取发票号码、开票日期、金额和商品明细 文件:invoice.pdf")]
+    })
+    print(response["messages"][-1].content)
+    print()
+    
+    # 示例 3: 提取合同信息
+    print("=" * 60)
+    print("示例 3: 提取合同信息")
+    print("=" * 60)
+    response = agent.invoke({
+        "messages": [HumanMessage(content="从合同中提取合同编号、签署日期、签约方和合同金额 文件:contract.pdf")]
+    })
+    print(response["messages"][-1].content)
+    print()
+    
+    # 示例 4: 数据验证
+    print("=" * 60)
+    print("示例 4: 数据验证")
+    print("=" * 60)
+    response = agent.invoke({
+        "messages": [HumanMessage(content="验证发票数据：检查必填项、金额计算、日期合理性、税号格式 文件:invoice.pdf")]
+    })
+    print(response["messages"][-1].content)
+```
+
+## 代码说明
+
+### Step 1: Pipeline 配置
+
+Pipeline 只包含两个阶段：
+- **Parse**：解析单据（OCR + 表格识别）
+- **Chunk**：按页面分块
+
+**不需要 Embed 阶段**，因为我们直接使用解析后的文本，不需要向量化。
+
+输出到本地文件系统，保存为 JSON 格式，包含：
+- 文档的文本内容
+- 页面信息
+- 元素坐标（用于可视化）
+
+### Step 2: 文档加载
+
+`load_parsed_document` 函数负责：
+- 从输出目录加载解析后的 JSON 文件
+- 提取所有页面的文本内容
+- 返回结构化的文档数据
+
+### Step 3: 信息提取 Tools
+
+每个 Tool 的工作流程：
+1. 从查询中提取文件名
+2. 加载解析后的文档文本
+3. 构建提取提示，调用大模型
+4. 返回结构化的 JSON 结果
+
+**关键点**：大模型直接从文本中提取信息，不需要向量检索。
+
+### Step 4: Agent 配置
+
+Agent 会自动：
+- 判断是否需要先处理文档
+- 选择合适的 Tool 提取信息
+- 组织最终的回答
+
+## 使用示例
+
+### 示例 1：处理文档
+
+```python
+response = agent.invoke({
+    "messages": [HumanMessage(content="请处理所有单据文档")]
+})
+print(response["messages"][-1].content)
+```
+
+### 示例 2：提取发票信息
+
+```python
+response = agent.invoke({
+    "messages": [HumanMessage(content="从发票中提取发票号码、开票日期、销售方税号、购买方税号、商品明细和金额 文件:invoice.pdf")]
+})
+print(response["messages"][-1].content)
+```
+
+### 示例 3：提取合同信息
+
+```python
+response = agent.invoke({
+    "messages": [HumanMessage(content="从合同中提取合同编号、签署日期、甲方、乙方、合同金额和违约责任条款 文件:contract.pdf")]
+})
+print(response["messages"][-1].content)
+```
+
+### 示例 4：数据验证
+
+```python
+response = agent.invoke({
+    "messages": [HumanMessage(content="验证提取的发票数据：检查必填项、金额计算、日期合理性、税号格式 文件:invoice.pdf")]
+})
+print(response["messages"][-1].content)
+```
+
+## 最佳实践
+
+1. **OCR优化**：对于扫描件和图片，使用 `parse_mode: "scan"` 确保文字识别准确
+2. **表格识别**：确保表格结构完整提取，特别是发票明细和订单明细
+3. **坐标保留**：开启 `include_orig_elements`，保留坐标信息，便于可视化验证
+4. **数据验证**：提取后立即验证，确保数据完整性和准确性
+5. **批量处理**：支持批量处理，提高效率
+6. **错误处理**：对于识别失败的单据，记录错误信息，便于人工处理
+7. **提示工程**：优化大模型的提示词，提高提取准确率
+
+## 常见问题
+
+**Q: 如何处理模糊的扫描件？**  
+A: 1) 使用高质量的扫描件；2) 预处理图片（去噪、增强对比度）；3) 使用支持OCR的解析引擎（textin）。
+
+**Q: 如何提高表格识别准确率？**  
+A: 1) 确保表格结构清晰；2) 使用支持表格识别的解析引擎；3) 在提示词中明确要求提取表格数据。
+
+**Q: 如何处理多页单据？**  
+A: xParse会自动处理多页文档，使用 `by_page` 策略保持页面完整性，大模型会从所有页面中提取信息。
+
+**Q: 可以使用其他 LLM 吗？**  
+A: 可以。LangChain 支持多种 LLM，只需替换 `ChatTongyi`（通义千问）为对应的类，如 `ChatOpenAI`（OpenAI）、`ChatZhipuAI`（智谱AI）等。
+
+**Q: 如何提高提取准确率？**  
+A: 1) 优化提示词，明确提取字段和格式；2) 使用更强的模型（如 qwen-max）；3) 对提取结果进行后处理和验证。
+
+## 相关文档
+
+- [快速启动](/pipeline/quickstart) - 了解Pipeline基本使用方法
+- [文档元素和元数据](/pipeline/elements-metadata) - 了解数据结构
+- [结果回溯与可视化](/pipeline/traceability) - 了解如何追溯结果
+- [Agent教程](/pipeline/tutorial/agent-tutorial) - 了解通用Agent构建方法

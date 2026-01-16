@@ -1,0 +1,29 @@
+---
+title: "计费说明"
+---
+
+Textin xParse 针对不同的解析引擎实行分级收费。您可以根据实际需求选择最合适的解析引擎，以在速度、准确性、价格上达到最佳平衡。在调用 API 时，您可以通过 [`provider`](/pipeline/parse#provider) 参数选择解析引擎。
+
+## 定价选项与套餐说明
+
+| 解析引擎 | 定价与计费 | 套餐购买 |
+| -------- | -------- | -------- |
+| textin, mineru, paddle | 按照 [通用文档解析](https://www.textin.com/market/chager/pdf_to_markdown?cache=7919) 服务定价 | [购买](https://www.textin.com/market/chager/pdf_to_markdown?cache=7919) |
+| textin-lite | 按照 [通用表格识别](https://www.textin.com/market/chager/recognize_table_multipage?cache=7515) 服务定价 | [购买](https://www.textin.com/market/chager/recognize_table_multipage?cache=7515) |
+
+## 具体使用计费规则说明
+
+TextIn xParse 采用「按量计费」制，计费单位为“T币/页”。在实际使用时，您可以选择购买页数套餐包，也可以直接[充值T币](https://www.textin.com/console/dashboard/userCenter/charge)使用。套餐和T币的计费规则为：
+
+- 扣费顺序：优先消耗即将到期的套餐包，未购买套餐包则按实际使用量扣减T币余额。
+- 购买套餐后，会自动开启按量计费模式；当套餐额度使用完毕后，如果未购买新套餐包，则会按实际使用量扣减T币余额，扣减T币余额时按套餐中的最高单价进行扣减。
+- 可以在【[工作台-我的套餐](https://www.textin.com/console/dashboard/userCenter/package_management)】中查看套餐使用情况，可以在【[工作台-充值与消费明细](https://www.textin.com/console/dashboard/userCenter/finance)】中查看T币订单和消费情况。
+
+
+同时我们为每位新注册的用户朋友**免费赠送100页**使用额度，添加TextIn福利官还可获得**免费加赠1000页**使用额度和其他超多福利！您可以自行上传文档进行处理，验证 TextIn xParse 在您实际业务场景中的表现。
+
+当您的免费额度使用完毕后，需要购买页数套餐包或[充值T币](https://www.textin.com/console/dashboard/userCenter/charge)使用。
+
+TextIn xParse 会根据您实际处理成功的文件页数进行计费扣减，处理失败的页数不计费。
+  - 您可以通过[`page_ranges`](/pipeline/parse#page-ranges)参数控制要处理的目标页数范围。
+  - 文档处理成功后，在返回的JSON结果中有[`stats.success_count`](/api-reference/endpoint/pipeline#response-stats-success-count)字段，即为处理成功的页数，您可以用于核验计费。
