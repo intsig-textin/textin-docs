@@ -245,6 +245,7 @@
                   "pipeline/parse",
                   "pipeline/chunk",
                   "pipeline/embed",
+                  "pipeline/extract",
                   "pipeline/traceability",
                   "pipeline/error"
                 ]
@@ -265,7 +266,9 @@
                     ]
                   },
                   "pipeline/tutorial/agentic-rag-tutorial",
-                  "pipeline/tutorial/rag-tutorial"
+                  "pipeline/tutorial/rag-tutorial",
+                  "pipeline/tutorial/extract-tutorial",
+                  "pipeline/tutorial/standalone-api-tutorial"
                 ]
               },
               {
@@ -283,6 +286,15 @@
                 "group": "文档处理流水线",
                 "pages": [
                   "api-reference/endpoint/pipeline"
+                ]
+              },
+              {
+                "group": "文档处理 API",
+                "pages": [
+                  "api-reference/endpoint/parse-sync",
+                  "api-reference/endpoint/parse-async",
+                  "api-reference/endpoint/parse-async-status",
+                  "api-reference/endpoint/extract-sync"
                 ]
               }
             ]

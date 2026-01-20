@@ -3,7 +3,7 @@ title: "产品简介"
 description: "xParse - 面向Agent和RAG的新一代文档处理 AI Infra"
 ---
 
-xParse 是一个端到端文档处理 AI 基础设施，致力于将非结构化文档高效转化为可查询、可分析的向量数据资产。通过统一的 Pipeline API，一次性完成文档解析（Parse）、智能分块（Chunk）和向量化（Embed）全流程，让文档数据无缝流入向量数据库，为 RAG、Agentic Workflow 等 AI 应用提供强大的数据底座。
+xParse 是一个端到端文档处理 AI 基础设施，致力于将非结构化文档高效转化为可查询、可分析的向量数据资产。通过统一的 Pipeline API，一次性完成文档解析（Parse）、智能分块（Chunk）、向量化（Embed）和信息抽取（Extract）全流程，让文档数据无缝流入向量数据库，为 RAG、Agentic Workflow 等 AI 应用提供强大的数据底座。
 
 xParse 持续与业界丰富的连接器生态集成。支持从 S3/MinIO、FTP、SMB、本地文件系统等多种数据源读取文档，经过智能处理后，将向量数据存储到 Milvus/Zilliz 等向量数据库本地文件系统，实现从文档到向量数据库的完整自动化链路。
 
@@ -11,18 +11,12 @@ xParse 持续与业界丰富的连接器生态集成。支持从 S3/MinIO、FTP�
 
 提供端到端的文档处理 AI 基础设施，从非结构化文档到向量数据库，一键完成全流程处理，您只需关心业务，剩下的交给 xParse。
 
-{/* ![Pipeline 架构图](https://static.textin.com/docs/images/pipeline/pipeline-arc.png)
+{/* ![Pipeline 架构图](https://static.textin.com/xparse/infa_arc_auto.svg) */}
 
-![Pipeline 架构图](https://static.textin.com/docs/images/pipeline/infra_arc_light.svg)
+![Pipeline 架构图](/images/pipeline/xparse_infra.svg)
 
-![Pipeline 架构图](https://static.textin.com/docs/images/pipeline/infra_arc_dark.svg) */}
 
-{/* ![Pipeline 架构图](https://static.textin.com/docs/images/pipeline/infra_arc_auto.svg) */}
-![Pipeline 架构图](https://static.textin.com/xparse/infa_arc_auto.svg)
-
-{/* ![Pipeline 架构图](https://static.textin.com/docs/images/pipeline/pipeline-arc-new.png) */}
-
-### 立即开始
+### 立即开始xxw
 
 <CardGroup cols={2}>
   <Card title="快速启动" icon="sparkles" href="/pipeline/quickstart">
@@ -41,7 +35,7 @@ xParse 持续与业界丰富的连接器生态集成。支持从 S3/MinIO、FTP�
 
 ### 核心优势
 
-- **统一 Pipeline API，一键完成全流程**：通过 `/api/xparse/pipeline` 接口，一次性完成文档解析、智能分块和向量化，无需多次调用，大幅简化开发流程，提升处理效率。
+- **统一 Pipeline API，一键完成全流程**：通过 `/api/xparse/pipeline` 接口，一次性完成文档解析、智能分块、向量化和信息抽取，无需多次调用，大幅简化开发流程，提升处理效率。
 
 - **多种解析引擎支持**：支持 Textin 自研高性能解析引擎（推荐）、MinerU、PaddleOCR 等多种**行业内先进**的解析引擎，可根据文档类型和解析需求灵活选择最适合的解析方案。
 
@@ -53,7 +47,8 @@ xParse 持续与业界丰富的连接器生态集成。支持从 S3/MinIO、FTP�
 
 - **多模型向量化支持**：支持通义千问（Qwen）和火山引擎（Doubao）的多种向量模型，包括 `text-embedding-v3`、`text-embedding-v4` 等，可根据精度和性能需求灵活选择。
 
-- **配置化处理，易于扩展**：基于抽象类设计，支持灵活配置 parse、chunk、embed 参数，同时易于扩展新的 Source 和 Destination，满足定制化需求。
+- **结构化信息抽取**：支持基于 JSON Schema 的结构化信息抽取，可以从文档中提取指定字段的结构化数据，支持坐标定位和印章识别。
+- **配置化处理，易于扩展**：基于抽象类设计，支持灵活配置 parse、chunk、embed、extract 参数，同时易于扩展新的 Source 和 Destination，满足定制化需求。
 
 - **详细统计信息**：返回每个阶段的处理统计数据，包括原始元素数、分块后元素数、向量化元素数等，便于监控和优化处理流程。
 
@@ -77,6 +72,10 @@ xParse 持续与业界丰富的连接器生态集成。支持从 S3/MinIO、FTP�
 
 构建基于语义相似度的文档检索系统，支持从海量文档中快速找到相关内容，提升信息检索效率。
 
+#### 信息提取和数据录入
+
+从发票、合同、订单等表单文档中提取结构化信息，自动完成数据录入和验证，提升业务处理效率。
+
 ### 技术架构
 
 xParse 采用模块化设计，核心组件包括：
@@ -84,7 +83,7 @@ xParse 采用模块化设计，核心组件包括：
 - **Source（数据源）**：抽象数据源接口，支持 S3Source、FtpSource、SMBSource、LocalSource 等实现
 - **Pipeline（处理管线）**：核心处理逻辑，调用统一 Pipeline API 完成文档处理
 - **Destination（目标存储）**：抽象目标存储接口，支持 MilvusDestination、S3Destination、LocalDestination 等实现
-- **Config（配置类）**：ParseConfig、ChunkConfig、EmbedConfig 等配置数据类，支持灵活的参数配置
+- **Config（配置类）**：ParseConfig、ChunkConfig、EmbedConfig、ExtractConfig 等配置数据类，支持灵活的参数配置
 
 ### 快速体验
 
@@ -96,6 +95,26 @@ xParse 采用模块化设计，核心组件包括：
 4. **配置[目的地连接器](/pipeline/destinations)**：了解如何将结果存储到 Milvus/Zilliz、S3 或本地文件系统
 5. **阅读[Agent/RAG 实战教程](/pipeline/tutorial/overview)**：了解如何使用 xParse 构建完整的 Agent 与 RAG 应用
 6. **参考[API 文档](/api-reference/endpoint/pipeline)**：查看详细的接口说明和参数配置
+
+## Pipeline API说明
+
+Pipeline API是xParse的核心接口，支持组合多个处理阶段：
+
+- **Parse**：文档解析，必需的第一个阶段
+- **Chunk**：文本分块，可选
+- **Embed**：向量化，可选
+- **Extract**：信息抽取，可选，必须与Parse组合
+
+**API文档**：[Pipeline API](/api-reference/endpoint/pipeline)
+
+## 相关API文档
+
+xParse还提供了其他API接口，适用于不同的使用场景：
+
+- **[Pipeline API](/api-reference/endpoint/pipeline)**：组合多个处理阶段
+- **[Parse同步API](/api-reference/endpoint/parse-sync)**：仅文档解析，同步返回
+- **[Parse异步API](/api-reference/endpoint/parse-async)**：仅文档解析，异步处理
+- **[Extract同步API](/api-reference/endpoint/extract-sync)**：文档抽取，同步返回
 
 更多详情见：[TextIn xParse 产品介绍](https://www.textin.com/market/detail/xparse)
 

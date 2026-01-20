@@ -2,14 +2,16 @@ openapi: 3.0.3
 info:
   title: XParse Pipeline API
   description: |
-    文档解析流水线接口，支持文档解析（Parse）、文本分块（Chunk）和向量化（Embed）的组合处理。
+    文档解析流水线接口，支持文档解析（Parse）、文本分块（Chunk）、向量化（Embed）和信息抽取（Extract）的组合处理。
     
     **流水线规则**
     - parse 节点是必需的，且必须是第一个节点
-    - chunk 和 embed 节点是可选的
+    - chunk、embed 和 extract 节点是可选的
     - 如果同时使用 chunk 和 embed，chunk 必须在 embed 之前
+    - extract 节点必须与 parse 组合使用，且必须在 parse 之后
+    - extract 节点不能与 chunk、embed 同时使用
     - 每种类型的节点最多只能出现一次
-    - stages 数组长度必须在 1-3 之间
+    - stages 数组长度必须在 1-3 之间（parse + extract 组合为 2 个 stage）
   version: 1.0.0
   contact:
     name: TextIn API Team
@@ -27,14 +29,16 @@ paths:
     post:
       summary: 文档处理流水线
       description: |
-        执行文档处理流水线，可以组合使用 parse、chunk、embed 三种处理阶段。
+        执行文档处理流水线，可以组合使用 parse、chunk、embed、extract 四种处理阶段。
         
         **流水线规则**
           - parse 节点是必需的，且必须是第一个节点
-          - chunk 和 embed 节点是可选的
+          - chunk、embed 和 extract 节点是可选的
           - 如果同时使用 chunk 和 embed，chunk 必须在 embed 之前
+          - extract 节点必须与 parse 组合使用，且必须在 parse 之后
+          - extract 节点不能与 chunk、embed 同时使用
           - 每种类型的节点最多只能出现一次
-          - stages 数组长度必须在 1-3 之间
+          - stages 数组长度必须在 1-3 之间（parse + extract 组合为 2 个 stage）
       operationId: executePipeline
       tags:
         - XParse Pipeline
@@ -61,7 +65,7 @@ paths:
                     **Stages 说明：**
 
                     Pipeline 接口使用 stages 数组来定义处理流程，每个 stage 包含：
-                    - `type`: 阶段类型，可选值：`parse`、`chunk`、`embed`
+                    - `type`: 阶段类型，可选值：`parse`、`chunk`、`embed`、`extract`
                     - `config`: 该阶段的配置，具体字段取决于阶段类型
 
                     **使用示例**
@@ -85,6 +89,14 @@ paths:
                       {"type": "parse", "config": {"provider": "textin"}},
                       {"type": "chunk", "config": {"strategy": "by_title", "max_characters": 500}},
                       {"type": "embed", "config": {"provider": "qwen", "model_name": "text-embedding-v4"}}
+                    ]
+                    ```
+                    
+                    解析 + 抽取：
+                    ```json
+                    [
+                      {"type": "parse", "config": {"provider": "textin"}},
+                      {"type": "extract", "config": {"schema": {...}, "generate_citations": false, "stamp": false}}
                     ]
                     ```
 
@@ -126,6 +138,21 @@ paths:
                       - `doubao-embedding-text-240715`
                     
                     更多向量化参数与详情参考[向量化 - Embed](/pipeline/embed)。
+
+                    4. **Extract Stage** (`type: "extract"`)
+
+                    Extract 阶段用于从解析后的文档中提取结构化信息。
+
+                    - **schema** (`object`/必填): JSON Schema定义，用于指定要抽取的字段结构。参考[文档抽取 - Extract](/pipeline/extract)了解详细的schema定义方法。
+                    - **generate_citations** (`boolean`/可选): 是否生成引用信息（坐标位置），默认值：`false`。当设置为 `true` 时，返回结果中会包含 `citations` 字段，包含每个抽取字段的坐标信息。
+                    - **stamp** (`boolean`/可选): 是否调用印章识别，默认值：`false`。当设置为 `true` 时，返回结果中会包含 `stamps` 字段，包含文档中的印章信息。
+
+                    **使用限制**：
+                    - Extract 必须与 Parse 组合使用
+                    - Extract 必须在 Parse 之后
+                    - Extract 不能与 Chunk、Embed 同时使用
+
+                    更多抽取参数与详情参考[信息抽取 - Extract](/pipeline/extract)。
                   example: '[{"type":"parse","config":{"provider":"textin"}}]'
             encoding:
               stages:
@@ -221,6 +248,61 @@ paths:
                           config:
                             provider: "qwen"
                             model_name: "text-embedding-v4"
+                
+                parseExtract:
+                  summary: 解析+抽取示例
+                  value:
+                    code: 200
+                    message: "success"
+                    elements:
+                      - element_id: "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+                        type: "NarrativeText"
+                        metadata:
+                          filename: "example.pdf"
+                          filetype: "application/pdf"
+                          last_modified: "1758624866230"
+                          page_number: 1
+                          page_width: 1191
+                          page_height: 1684
+                        text: "这是解析出的文本内容"
+                    extract_result:
+                      success_count: 1
+                      extracted_schema:
+                        商品: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+                      citations:
+                        商品:
+                          value: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+                          bounding_regions:
+                            - page_number: 1
+                              position: [137, 599, 1129, 599, 1129, 625, 182, 625]
+                              text: "童装 Looney Tunes UT（短袖T恤）"
+                      pages:
+                        - page_number: 1
+                          image_id: "62bfe3c3a8e9c9cf.jpg"
+                          height: 1824
+                          width: 600
+                          angle: 0
+                          status: "Success"
+                          durations: 930.178466796875
+                    stats:
+                      success_count: 1
+                      original_elements: 10
+                      chunked_elements: 0
+                      embedded_elements: 0
+                      stages:
+                        - type: "parse"
+                          config: {"provider": "textin"}
+                        - type: "extract"
+                          config:
+                            schema:
+                              type: "object"
+                              properties:
+                                商品:
+                                  type: ["string", "null"]
+                                  description: "商品名称"
+                              required: ["商品"]
+                            generate_citations: false
+                            stamp: false
         
 
 components:
@@ -278,6 +360,10 @@ components:
           description: 处理后的元素列表
           items:
             $ref: '#/components/schemas/Element'
+        extract_result:
+          type: object
+          description: 抽取结果（仅在执行 extract stage 后存在）
+          $ref: '#/components/schemas/ExtractResult'
         stats:
           $ref: '#/components/schemas/PipelineStats'
     
@@ -439,12 +525,13 @@ components:
       properties:
         type:
           type: string
-          enum: [parse, chunk, embed]
+          enum: [parse, chunk, embed, extract]
           description: |
             处理阶段类型：
             - parse: 文档解析
             - chunk: 文本分块
             - embed: 向量化
+            - extract: 信息抽取
           example: "parse"
         config:
           type: object
@@ -453,10 +540,12 @@ components:
             - type=parse: ParseConfig
             - type=chunk: ChunkConfig
             - type=embed: EmbedConfig
+            - type=extract: ExtractConfig
           oneOf:
             - $ref: '#/components/schemas/ParseConfig'
             - $ref: '#/components/schemas/ChunkConfig'
             - $ref: '#/components/schemas/EmbedConfig'
+            - $ref: '#/components/schemas/ExtractConfig'
     
     ParseConfig:
       type: object
@@ -673,6 +762,200 @@ components:
             - doubao-embedding-large-text-250515
             - doubao-embedding-text-240715
     
+    ExtractConfig:
+      type: object
+      required:
+        - schema
+      description: |
+        信息抽取配置。用于从解析后的文档中提取结构化信息。
+        
+        通过定义 JSON Schema 来指定要抽取的字段结构，系统会根据 schema 定义进行抽取。
+      properties:
+        schema:
+          type: object
+          description: |
+            JSON Schema定义，用于指定要抽取的字段结构。
+            
+            参考[文档抽取快速启动](/xparse/extract-quickstart-v3#json-schema-结构说明和抽取指南)了解详细的schema定义方法。
+            
+            Schema 必须遵循 JSON Schema 规范，最外层 type 必须为 "object"，properties 中定义要抽取的字段。
+          example:
+            type: "object"
+            properties:
+              商品:
+                type: ["string", "null"]
+                description: "商品名称"
+            required: ["商品"]
+        generate_citations:
+          type: boolean
+          description: |
+            是否生成引用信息（坐标位置）。
+            
+            当设置为 `true` 时，返回结果中的 `citations` 字段会包含每个抽取字段的坐标信息，包括页码和边界框位置。
+          default: false
+          example: false
+        stamp:
+          type: boolean
+          description: |
+            是否调用印章识别。
+            
+            当设置为 `true` 时，返回结果中的 `stamps` 字段会包含文档中的印章信息，包括印章类型、颜色、形状和文本内容。
+          default: false
+          example: false
+    
+    ExtractResult:
+      type: object
+      description: Extract阶段返回的抽取结果
+      properties:
+        success_count:
+          type: integer
+          description: 成功处理的文档页数
+          example: 1
+        extracted_schema:
+          type: object
+          description: |
+            结构化的抽取结果，以json格式返回，与抽取时传入的schema定义的结构一致。
+            
+            由于使用结构化抽取，具体的字段名称和数据类型由用户的schema决定，无法预先确定。
+          additionalProperties: true
+          example:
+            商品: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+        citations:
+          type: object
+          description: |
+            抽取结果的详细信息，包含坐标位置，结构与schema定义一致。
+            
+            仅在 generate_citations=true 时返回。每个抽取字段的详细信息包含：
+            - value: 该字段的抽取结果
+            - bounding_regions: 抽取结果value对应的坐标位置
+              - page_number: 所在页码，从1开始
+              - text: 边界框所在区域内的文本内容
+              - position: 坐标位置，长度为8的数组，表示四个顶点的像素坐标 [左上x, 左上y, 右上x, 右上y, 右下x, 右下y, 左下x, 左下y]
+          additionalProperties:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/CitationItem'
+        stamps:
+          type: array
+          description: 印章相关信息（仅在 stamp=true 且文档中包含印章时返回）
+          items:
+            $ref: '#/components/schemas/StampInfo'
+        pages:
+          type: array
+          description: 文档页面相关信息
+          items:
+            $ref: '#/components/schemas/PageInfo'
+    
+    CitationItem:
+      type: object
+      required:
+        - value
+        - bounding_regions
+      properties:
+        value:
+          type: string
+          nullable: true
+          description: 该字段的抽取结果
+          example: "童装 Looney Tunes UT（短袖T恤）"
+        bounding_regions:
+          type: array
+          description: 抽取结果value对应的坐标位置
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+    
+    BoundingRegion:
+      type: object
+      required:
+        - page_number
+        - position
+        - text
+      properties:
+        page_number:
+          type: integer
+          description: 所在页码，从1开始
+          example: 1
+        position:
+          type: array
+          description: |
+            坐标位置，长度为8的数组，表示四个顶点的像素坐标
+            [左上x, 左上y, 右上x, 右上y, 右下x, 右下y, 左下x, 左下y]
+          items:
+            type: number
+          minItems: 8
+          maxItems: 8
+          example: [137, 599, 1129, 599, 1129, 625, 182, 625]
+        text:
+          type: string
+          description: 边界框所在区域内的文本内容
+          example: "童装 Looney Tunes UT（短袖T恤）"
+    
+    StampInfo:
+      type: object
+      description: 印章相关信息
+      properties:
+        color:
+          type: string
+          description: 当前印章颜色
+          enum: [红色, 蓝色, 黑色, 其他]
+          example: "红色"
+        position:
+          type: array
+          description: 印章的坐标信息，长度为8的数组
+          items:
+            type: number
+          minItems: 8
+          maxItems: 8
+        stamp_shape:
+          type: string
+          description: 当前印章形状
+          enum: [圆章, 椭圆章, 方章, 三角章, 菱形章, 其他]
+          example: "圆章"
+        type:
+          type: string
+          description: 当前印章类型
+          enum: [公章, 个人章, 专用章, 其他, 合同专用章, 财务专用章, 发票专用章, 业务专用章]
+          example: "公章"
+        value:
+          type: string
+          description: 印章的文本内容
+          example: "某某公司"
+    
+    PageInfo:
+      type: object
+      required:
+        - page_number
+        - status
+        - durations
+      properties:
+        page_number:
+          type: integer
+          description: 当前页码
+          example: 1
+        image_id:
+          type: string
+          description: 当前页面图片id
+          example: "62bfe3c3a8e9c9cf.jpg"
+        height:
+          type: integer
+          description: 文档页面高度
+          example: 1824
+        width:
+          type: integer
+          description: 文档页面宽度
+          example: 600
+        angle:
+          type: integer
+          description: 页面角度（可选值0, 90, 180, 270）
+          enum: [0, 90, 180, 270]
+          example: 0
+        status:
+          type: string
+          description: 当前页处理状态
+          example: "Success"
+        durations:
+          type: number
+          description: 当前页处理耗时(毫秒)
+          example: 930.178466796875
 
 tags:
   - name: XParse Pipeline
@@ -680,14 +963,15 @@ tags:
       文档处理流水线接口
       
       ## 功能特性
-      - 🔄 灵活的流水线配置：可自由组合 parse、chunk、embed 三种处理阶段
+      - 🔄 灵活的流水线配置：可自由组合 parse、chunk、embed、extract 四种处理阶段
       - 📄 多格式支持：支持 PDF、图片等多种文档格式
       - 🧩 智能分块：支持基础、按标题、按页面三种分块策略
       - 🤖 多模型支持：支持通义千问和豆包的多种 embedding 模型
+      - 📊 信息抽取：支持基于 JSON Schema 的结构化信息抽取
       - 📊 处理统计：返回详细的处理统计信息
       
       ## 计费说明
       - 按照 parse 阶段处理的页数计费
-      - chunk 和 embed 阶段不额外收费
+      - chunk、embed 和 extract 阶段不额外收费
       - 计费信息通过 x-ti-app-id 和 x-ti-secret-code 进行关联
 
