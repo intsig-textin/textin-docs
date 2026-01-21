@@ -370,26 +370,23 @@ extract_config = ExtractConfig(
 ### Pipeline Extract
 
 **优点**：
-- 保留解析结果（elements）
 - 支持批量处理
-- 可以与其他处理阶段组合
+- pipeline SDK 可以灵活配置连接器
 
 **缺点**：
 - 需要配置两个stage
 - 不能与chunk、embed同时使用
 
 **适用场景**：
-- 需要解析结果和抽取结果
 - 需要批量处理文档
 
 ### Extract API
 
 **优点**：
-- 使用简单，只需配置extract
+- 使用简单
 - 内部自动调用Parse
 
 **缺点**：
-- 不返回解析结果
 - 需要自行实现批量处理
 
 **适用场景**：

@@ -254,17 +254,6 @@ paths:
                   value:
                     code: 200
                     message: "success"
-                    elements:
-                      - element_id: "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
-                        type: "NarrativeText"
-                        metadata:
-                          filename: "example.pdf"
-                          filetype: "application/pdf"
-                          last_modified: "1758624866230"
-                          page_number: 1
-                          page_width: 1191
-                          page_height: 1684
-                        text: "这是解析出的文本内容"
                     extract_result:
                       success_count: 1
                       extracted_schema:
@@ -352,12 +341,14 @@ components:
     PipelineResponse:
       type: object
       required:
-        - elements
         - stats
       properties:
         elements:
           type: array
-          description: 处理后的元素列表
+          description: |
+            处理后的元素列表。
+            
+            注意：当使用 extract 节点时，此字段不会返回。
           items:
             $ref: '#/components/schemas/Element'
         extract_result:

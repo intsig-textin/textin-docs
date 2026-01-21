@@ -154,8 +154,7 @@ xParse提供了两种方式使用Extract功能：
 在Pipeline API中使用Extract作为第二个stage，必须与Parse组合使用。
 
 **适用场景**：
-- 需要先解析再抽取
-- 需要保留解析结果和抽取结果
+- 需要在自动化工作流中使用抽取功能，与连接器生态集成
 - 需要批量处理文档
 
 **API文档**：[Pipeline API](/api-reference/endpoint/pipeline)
@@ -182,15 +181,12 @@ xParse提供了两种方式使用Extract功能：
 
 | 特性 | Pipeline Extract | Extract API |
 |------|------------------|-------------|
-| Parse结果 | 保留在elements中 | 不返回 |
-| 使用复杂度 | 需要配置两个stage | 只需配置extract |
-| 适用场景 | 需要解析+抽取 | 只需要抽取 |
+| 适用场景 | 需要批量处理 | 只需要抽取 |
 | 批量处理 | 支持 | 需要自行实现 |
 
 **选择建议**：
-- **需要解析结果**：使用Pipeline API（parse + extract）
-- **只需要抽取结果**：使用Extract API
-- **批量处理**：使用Pipeline API
+- **只需要抽取结果**：两种方式都可以，根据是否需要批量处理选择
+- **批量处理**：使用Pipeline API（parse + extract）
 
 ## 返回结果示例
 
@@ -206,17 +202,6 @@ xParse提供了两种方式使用Extract功能：
 {
     "code": 200,
     "message": "success",
-    "elements": [
-        {
-            "element_id": "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc",
-            "type": "NarrativeText",
-            "text": "这是解析出的文本内容",
-            "metadata": {
-                "filename": "example.pdf",
-                "page_number": 1
-            }
-        }
-    ],
     "extract_result": {
         "success_count": 1,
         "extracted_schema": {
