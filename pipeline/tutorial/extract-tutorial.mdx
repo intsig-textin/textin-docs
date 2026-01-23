@@ -110,7 +110,7 @@ from xparse_client import (
 # 创建数据源
 source = LocalSource(
     directory='./documents',
-    pattern=['*.pdf']  # 支持多种格式：['*.pdf', '*.jpg', '*.png']
+    pattern=['*.png']  # 支持多种格式：['*.pdf', '*.jpg', '*.png']
 )
 
 # 创建目标存储
@@ -200,22 +200,23 @@ Pipeline 初始化完成
 ============================================================
 
 → 列出文件...
-✓ 本地找到 2 个文件
+✓ 本地找到 1 个文件
 
-进度: [1/2]
+进度: [1/1]
 
 ============================================================
-处理文件: invoice.pdf
+处理文件: 文档抽取示例.png
   → 读取文件...
-  ✓ 文件读取完成: 245678 bytes
-  → 调用 Pipeline 接口: invoice.pdf
-  ✓ Pipeline 完成:
-    - 解析完成: 25 个元素
-    - 抽取完成: 结构化数据已提取
+  ✓ 文件读取完成: 2376966 bytes
+  → 调用 Pipeline 接口: 文档抽取示例.png
+  ✓ Pipeline 接口返回 x_request_id: 61d4217c6c64517f86b6d3dec6a8519d
+  ✓ Extract 完成:
+    - 原始元素: 44
+    - 提取结果类型: dict
   → 写入目的地...
-  ✓ 写入本地: ./output/invoice.json
-
-✓✓✓ 文件处理成功: invoice.pdf
+  ✓ 写入本地: ./output/文档抽取示例.json
+  
+✓✓✓ 文件处理成功: 文档抽取示例.png
 ...
 ```
 
