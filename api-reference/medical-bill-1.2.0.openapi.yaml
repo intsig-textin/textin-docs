@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  version: 1.2.0
-  title: 医疗票据识别v1.2.0接口
+  version: 1.3.0
+  title: 医疗票据识别v1.3.0接口
 servers:
   - url: https://api.textin.com
     description: Production server
@@ -150,7 +150,7 @@ components:
         version:
           type: string
           description: 接口版本
-          example: v1.2.0
+          example: v1.3.0
         result:
           type: object
           required:
