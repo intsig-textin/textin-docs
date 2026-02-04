@@ -57,7 +57,7 @@
                   "xparse/extract-quickstart-v3",
                   "xparse/extract-tutorial-v3",
                   "xparse/extract-best-practices-v3",
-                   {
+                  {
                     "group": "快捷调试",
                     "pages": [
                       "xparse/extract-debug-postman",
@@ -252,6 +252,12 @@
                 ]
               },
               {
+                "group": "生态集成",
+                "pages": [
+                  "pipeline/integrations/dify-nav"
+                ]
+              },
+              {
                 "group": "实战教程",
                 "pages": [
                   "pipeline/tutorial/overview",
@@ -301,6 +307,12 @@
             ]
           },
           {
+            "tab": "Integrations",
+            "pages": [
+              "pipeline/integrations/dify"
+            ]
+          },
+          {
             "tab": "Open Source",
             "pages": [
               "pipeline/open-source/visualizer"
@@ -309,8 +321,8 @@
           {
             "tab": "Blog",
             "pages": [
-                  "pipeline/blog/ai-agent-data-structure"
-                ]
+              "pipeline/blog/ai-agent-data-structure"
+            ]
           }
         ]
       }
