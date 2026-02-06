@@ -67,6 +67,13 @@
                 ]
               },
               {
+                "group": "Pipeline",
+                "tag": "NEW",
+                "pages": [
+                  "/xparse/pipeline-nav"
+                ]
+              },
+              {
                 "group": "FAQ",
                 "pages": [
                   "xparse/charge"
@@ -283,6 +290,13 @@
                 "pages": [
                   "pipeline/charge"
                 ]
+              },
+              {
+                "group": "Legacy xParse",
+                "pages": [
+                  "pipeline/legacy/parse",
+                  "pipeline/legacy/extract"
+                ]
               }
             ]
           },
@@ -348,6 +362,11 @@
   },
   "navbar": {
     "links": [
+      {
+        "label": "GitHub",
+        "icon": "github",
+        "href": "https://github.com/intsig-textin"
+      },
       {
         "label": "资讯中心",
         "href": "https://www.textin.com/news/list"
