@@ -261,7 +261,12 @@
               {
                 "group": "生态集成",
                 "pages": [
-                  "pipeline/integrations/dify-nav"
+                  "pipeline/integrations/dify-nav",
+                  "pipeline/integrations/coze-nav",
+                  "pipeline/integrations/ragflow-nav",
+                  "pipeline/integrations/langchain-nav",
+                  "pipeline/integrations/mcp-nav",
+                  "pipeline/integrations/skills-nav"
                 ]
               },
               {
@@ -282,7 +287,9 @@
                   {
                     "group": "xParse + Dify 构建 Agent 和 RAG",
                     "pages": [
-                      "pipeline/tutorial/dify-rag-tutorial"
+                      "pipeline/tutorial/dify-rag-tutorial",
+                      "pipeline/tutorial/dify-information-extraction-agent-tutorial",
+                      "pipeline/tutorial/dify-contract-audit-agent-tutorial"
                     ]
                   },
                   "pipeline/tutorial/rag-tutorial",
@@ -328,7 +335,12 @@
           {
             "tab": "Integrations",
             "pages": [
-              "pipeline/integrations/dify"
+              "pipeline/integrations/dify",
+              "pipeline/integrations/coze",
+              "pipeline/integrations/ragflow",
+              "pipeline/integrations/langchain",
+              "pipeline/integrations/mcp",
+              "pipeline/integrations/skills"
             ]
           },
           {
