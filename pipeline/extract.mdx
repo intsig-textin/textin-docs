@@ -202,44 +202,47 @@ xParse提供了两种方式使用Extract功能：
 {
     "code": 200,
     "message": "success",
-    "extract_result": {
-        "success_count": 1,
-        "extracted_schema": {
-            "商品": "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+    "x_request_id": "req_1234567890abcdef",
+    "data": {
+        "extract_result": {
+            "success_count": 1,
+            "extracted_schema": {
+                "商品": "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+            },
+            "citations": {
+                "商品": {
+                    "value": "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）",
+                    "bounding_regions": [
+                        {
+                            "page_number": 1,
+                            "position": [137, 599, 1129, 599, 1129, 625, 182, 625],
+                            "text": "童装 Looney Tunes UT（短袖T恤）"
+                        }
+                    ]
+                }
+            },
+            "pages": [
+                {
+                    "page_number": 1,
+                    "image_id": "62bfe3c3a8e9c9cf.jpg",
+                    "height": 1824,
+                    "width": 600,
+                    "angle": 0,
+                    "status": "Success",
+                    "durations": 930.178466796875
+                }
+            ]
         },
-        "citations": {
-            "商品": {
-                "value": "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）",
-                "bounding_regions": [
-                    {
-                        "page_number": 1,
-                        "position": [137, 599, 1129, 599, 1129, 625, 182, 625],
-                        "text": "童装 Looney Tunes UT（短袖T恤）"
-                    }
-                ]
-            }
-        },
-        "pages": [
-            {
-                "page_number": 1,
-                "image_id": "62bfe3c3a8e9c9cf.jpg",
-                "height": 1824,
-                "width": 600,
-                "angle": 0,
-                "status": "Success",
-                "durations": 930.178466796875
-            }
-        ]
-    },
-    "stats": {
-        "success_count": 1,
-        "original_elements": 10,
-        "chunked_elements": 0,
-        "embedded_elements": 0,
-        "stages": [
-            {"type": "parse", "config": {"provider": "textin"}},
-            {"type": "extract", "config": {"schema": {...}, "generate_citations": false, "stamp": false}}
-        ]
+        "stats": {
+            "success_count": 1,
+            "original_elements": 10,
+            "chunked_elements": 0,
+            "embedded_elements": 0,
+            "stages": [
+                {"type": "parse", "config": {"provider": "textin"}},
+                {"type": "extract", "config": {"schema": {...}, "generate_citations": false, "stamp": false}}
+            ]
+        }
     }
 }
 ```

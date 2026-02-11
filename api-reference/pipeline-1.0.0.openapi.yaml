@@ -163,135 +163,139 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/codemessage'
-                  - $ref: '#/components/schemas/PipelineResponse'
+                $ref: '#/components/schemas/PipelineApiResponse'
               examples:
                 parseOnly:
                   summary: 仅解析示例
                   value:
                     code: 200
                     message: "success"
-                    elements:
-                      - element_id: "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
-                        type: "NarrativeText"
-                        metadata:
-                          filename: "example.pdf"
-                          filetype: "application/pdf"
-                          last_modified: "1758624866230"
-                          page_number: 1
-                          page_width: 1191
-                          page_height: 1684
-                          coordinates: [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732]
-                          parent_id: "23a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
-                          category_depth: 1
-                          data_source:
-                            record_locator:
-                              protocol: "file"
-                              remote_file_path: "/projects/demo/example.pdf"
-                            url: "file:///projects/demo/example.pdf"
-                            version: "1758624866230967485"
-                            date_created: "1764555574237"
-                            date_modified: "1758624866230"
-                            date_processed: "1764742970688"
-                        text: "这是解析出的文本内容"
-                    stats:
-                      success_count: 1
-                      original_elements: 10
-                      chunked_elements: 0
-                      embedded_elements: 0
-                      stages:
-                        - type: "parse"
-                          config: {"provider": "textin"}
+                    x_request_id: "req_1234567890abcdef"
+                    data:
+                      elements:
+                        - element_id: "13a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+                          type: "NarrativeText"
+                          metadata:
+                            filename: "example.pdf"
+                            filetype: "application/pdf"
+                            last_modified: "1758624866230"
+                            page_number: 1
+                            page_width: 1191
+                            page_height: 1684
+                            coordinates: [0.1822, 0.2316, 0.6717, 0.2316, 0.6717, 0.2732, 0.1822, 0.2732]
+                            parent_id: "23a9939f23e485ca20a16c741658bcf64efd82309a6f0a8cf35679a65b2fd0dc"
+                            category_depth: 1
+                            data_source:
+                              record_locator:
+                                protocol: "file"
+                                remote_file_path: "/projects/demo/example.pdf"
+                              url: "file:///projects/demo/example.pdf"
+                              version: "1758624866230967485"
+                              date_created: "1764555574237"
+                              date_modified: "1758624866230"
+                              date_processed: "1764742970688"
+                          text: "这是解析出的文本内容"
+                      stats:
+                        success_count: 1
+                        original_elements: 10
+                        chunked_elements: 0
+                        embedded_elements: 0
+                        stages:
+                          - type: "parse"
+                            config: {"provider": "textin"}
                 
                 fullPipeline:
                   summary: 完整流水线示例
                   value:
                     code: 200
                     message: "success"
-                    elements:
-                      - element_id: "5f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad6"
-                        type: "CompositeElement"
-                        metadata:
-                          filename: "example.pdf"
-                          filetype: "application/pdf"
-                          last_modified: "1758624866230"
-                          page_number: 1
-                          page_width: 1191
-                          page_height: 1684
-                          orig_elements: "eJy ... Base64-encoded gzip+UTF-8 string ... x8="
-                          is_continuation: false
-                          data_source:
-                            record_locator:
-                              protocol: "file"
-                              remote_file_path: "/projects/demo/example.pdf"
-                            url: "file:///projects/demo/example.pdf"
-                            version: "1758624866230967485"
-                            date_created: "1764555574237"
-                            date_modified: "1758624866230"
-                            date_processed: "1764742970688"
-                        text: "这是处理后的文本块"
-                        embeddings: [0.1, 0.2, 0.3, 0.4]
-                    stats:
-                      success_count: 1
-                      original_elements: 10
-                      chunked_elements: 15
-                      embedded_elements: 15
-                      stages:
-                        - type: "parse"
-                          config: {"provider": "textin"}
-                        - type: "chunk"
-                          config:
-                            strategy: "basic"
-                            max_characters: 1000
-                        - type: "embed"
-                          config:
-                            provider: "qwen"
-                            model_name: "text-embedding-v4"
+                    x_request_id: "req_1234567890abcdef"
+                    data:
+                      elements:
+                        - element_id: "5f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad65f84a1db7c9f4ad6"
+                          type: "CompositeElement"
+                          metadata:
+                            filename: "example.pdf"
+                            filetype: "application/pdf"
+                            last_modified: "1758624866230"
+                            page_number: 1
+                            page_width: 1191
+                            page_height: 1684
+                            orig_elements: "eJy ... Base64-encoded gzip+UTF-8 string ... x8="
+                            is_continuation: false
+                            data_source:
+                              record_locator:
+                                protocol: "file"
+                                remote_file_path: "/projects/demo/example.pdf"
+                              url: "file:///projects/demo/example.pdf"
+                              version: "1758624866230967485"
+                              date_created: "1764555574237"
+                              date_modified: "1758624866230"
+                              date_processed: "1764742970688"
+                          text: "这是处理后的文本块"
+                          embeddings: [0.1, 0.2, 0.3, 0.4]
+                      stats:
+                        success_count: 1
+                        original_elements: 10
+                        chunked_elements: 15
+                        embedded_elements: 15
+                        stages:
+                          - type: "parse"
+                            config: {"provider": "textin"}
+                          - type: "chunk"
+                            config:
+                              strategy: "basic"
+                              max_characters: 1000
+                          - type: "embed"
+                            config:
+                              provider: "qwen"
+                              model_name: "text-embedding-v4"
                 
                 parseExtract:
                   summary: 解析+抽取示例
                   value:
                     code: 200
                     message: "success"
-                    extract_result:
-                      success_count: 1
-                      extracted_schema:
-                        商品: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
-                      citations:
-                        商品:
-                          value: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
-                          bounding_regions:
-                            - page_number: 1
-                              position: [137, 599, 1129, 599, 1129, 625, 182, 625]
-                              text: "童装 Looney Tunes UT（短袖T恤）"
-                      pages:
-                        - page_number: 1
-                          image_id: "62bfe3c3a8e9c9cf.jpg"
-                          height: 1824
-                          width: 600
-                          angle: 0
-                          status: "Success"
-                          durations: 930.178466796875
-                    stats:
-                      success_count: 1
-                      original_elements: 10
-                      chunked_elements: 0
-                      embedded_elements: 0
-                      stages:
-                        - type: "parse"
-                          config: {"provider": "textin"}
-                        - type: "extract"
-                          config:
-                            schema:
-                              type: "object"
-                              properties:
-                                商品:
-                                  type: ["string", "null"]
-                                  description: "商品名称"
-                              required: ["商品"]
-                            generate_citations: false
-                            stamp: false
+                    x_request_id: "req_1234567890abcdef"
+                    data:
+                      extract_result:
+                        success_count: 1
+                        extracted_schema:
+                          商品: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+                        citations:
+                          商品:
+                            value: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+                            bounding_regions:
+                              - page_number: 1
+                                position: [137, 599, 1129, 599, 1129, 625, 182, 625]
+                                text: "童装 Looney Tunes UT（短袖T恤）"
+                        pages:
+                          - page_number: 1
+                            image_id: "62bfe3c3a8e9c9cf.jpg"
+                            height: 1824
+                            width: 600
+                            angle: 0
+                            status: "Success"
+                            durations: 930.178466796875
+                      stats:
+                        success_count: 1
+                        original_elements: 10
+                        chunked_elements: 0
+                        embedded_elements: 0
+                        stages:
+                          - type: "parse"
+                            config: {"provider": "textin"}
+                          - type: "extract"
+                            config:
+                              schema:
+                                type: "object"
+                                properties:
+                                  商品:
+                                    type: ["string", "null"]
+                                    description: "商品名称"
+                                required: ["商品"]
+                              generate_citations: false
+                              stamp: false
         
 
 components:
@@ -309,11 +313,12 @@ components:
 
 
   schemas:
-    codemessage:
+    PipelineApiResponse:
       type: object
       required:
         - code
         - message
+        - data
       properties:
         code:
           type: integer
@@ -337,6 +342,12 @@ components:
           type: string
           description: 错误信息
           example: "success"
+        x_request_id:
+          type: string
+          description: 请求唯一标识符
+          example: "req_1234567890abcdef"
+        data:
+          $ref: '#/components/schemas/PipelineResponse'
     
     PipelineResponse:
       type: object
