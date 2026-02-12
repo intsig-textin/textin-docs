@@ -1,20 +1,708 @@
 ---
-title: "LangChain (敬请期待)"
+title: "LangChain"
 description: "使用 xParse LangChain 插件，为 RAG、Agent、信息提取等场景的提供高效文档解析。"
 ---
 
-# xParse LangChain 插件简介
+**LangChain** 是一个用于构建基于大语言模型应用的框架，提供了丰富的工具和组件，帮助开发者快速构建 RAG（检索增强生成）、Agent、信息提取等应用。
 
-我们正在努力完善 LangChain 集成文档，敬请期待！
+**xParse** 是一个端到端文档处理 AI 基础设施，致力于将非结构化文档高效转化为可查询、可分析的数据资产。
 
-LangChain 是一个用于构建基于大语言模型应用的框架，xParse 将与 LangChain 深度集成，为您提供强大的文档解析和处理能力。
+**langchain-xparse** 是 xParse 与 LangChain 的集成插件，通过 `XParseLoader` 将 xParse Pipeline API 的强大文档解析能力无缝集成到 LangChain 应用中，让您轻松实现文档解析、分块、向量化等功能。
 
-## 敬请期待
+- GitHub 地址：https://github.com/intsig-textin/langchain-xparse
+- PyPI 地址：https://pypi.org/project/langchain-xparse/
 
-我们正在开发 xParse LangChain 插件，它将为您提供：
+## xParse LangChain 插件亮点
 
-- **强大的文档处理能力**：支持 PDF、Word、Excel、PPT、图片等多种格式
-- **智能解析引擎**：准确提取标题、公式、图表、表格等元素，保留文档的语义结构
-- **无缝集成体验**：轻松在 LangChain 应用中使用 xParse 的文档解析能力
+- **强大的文档处理能力**：支持 PDF、Word、Excel、PPT、图片等多种格式，准确提取标题、公式、图表、表格等元素，保留文档的语义结构
+- **灵活的解析配置**：支持 TextIn、MinerU、PaddleOCR 等多种解析引擎，可根据文档类型灵活选择
+- **便捷的集成方式**：提供 `XParseLoader` 类，与 LangChain 的文档加载器接口完全兼容，支持同步、异步、懒加载等多种加载方式
+- **完整的 Pipeline 支持**：支持 parse、chunk、embed 三个阶段，可单独使用或组合使用，满足不同场景需求
+- **丰富的元数据**：解析结果包含丰富的元数据信息，如页码、元素类型、坐标等，便于后续处理和分析
 
-更多详细信息即将推出，敬请关注！
+# 安装与配置
+
+## 安装
+
+从 PyPI 安装：
+
+```bash
+pip install langchain-xparse
+```
+
+本地开发安装：
+
+```bash
+pip install -e .
+```
+
+## 配置 API 凭证
+
+在使用 `XParseLoader` 之前，需要配置 xParse 的 API 凭证。您可以通过以下两种方式配置：
+
+### 方式一：环境变量（推荐）
+
+在终端中设置环境变量：
+
+```bash
+export XPARSE_APP_ID="your-app-id"
+export XPARSE_SECRET_CODE="your-secret-code"
+```
+
+或在 Python 代码中设置：
+
+```python
+import os
+os.environ["XPARSE_APP_ID"] = "your-app-id"
+os.environ["XPARSE_SECRET_CODE"] = "your-secret-code"
+```
+
+### 方式二：直接传参
+
+在创建 `XParseLoader` 时直接传入凭证：
+
+```python
+from langchain_xparse import XParseLoader
+
+loader = XParseLoader(
+    file_path="doc.pdf",
+    app_id="your-app-id",
+    secret_code="your-secret-code",
+)
+```
+
+> 提示：请前往 [TextIn 工作台 - 账号与开发者信息](https://www.textin.com/console/dashboard/setting) 获取 API Key，详细获取方式请参考 [API Key 文档](/pipeline/api-key)
+
+# 基本使用方法
+
+## 基础解析（parse only）
+
+最简单的使用方式，仅解析文档内容：
+
+```python
+from langchain_xparse import XParseLoader
+
+# 创建加载器
+loader = XParseLoader(file_path="example.pdf")
+
+# 加载文档
+docs = loader.load()
+
+# 查看解析结果
+print(docs[0].page_content[:200])  # 文档内容（Markdown 格式）
+print(docs[0].metadata)  # 元数据：source, category, element_id, filename, page_number, ...
+```
+
+## 懒加载（lazy load）
+
+对于大文件或多个文件，使用懒加载可以节省内存：
+
+```python
+from langchain_xparse import XParseLoader
+
+loader = XParseLoader(file_path="large_document.pdf")
+
+# 懒加载，逐个返回文档
+for doc in loader.lazy_load():
+    print(f"页码: {doc.metadata.get('page_number')}")
+    print(f"内容: {doc.page_content[:100]}...")
+    # 处理文档
+```
+
+## 异步加载（async）
+
+支持异步加载，适合异步应用场景：
+
+```python
+import asyncio
+from langchain_xparse import XParseLoader
+
+async def load_documents():
+    loader = XParseLoader(file_path="example.pdf")
+    async for doc in loader.alazy_load():
+        print(doc.page_content[:100])
+        # 处理文档
+
+# 运行异步函数
+asyncio.run(load_documents())
+```
+
+## 便捷参数（parse + chunk）
+
+使用便捷参数快速配置解析和分块：
+
+```python
+from langchain_xparse import XParseLoader
+
+# 解析 + 分块
+loader = XParseLoader(
+    file_path="doc.pdf",
+    parse_provider="textin",
+    chunk_strategy="by_title",  # 按标题分块
+    chunk_max_characters=500,   # 最大字符数
+    chunk_overlap=50,           # 重叠字符数
+)
+
+docs = loader.load()
+```
+
+## 解析 + 分块 + 向量化
+
+一步完成解析、分块和向量化：
+
+```python
+from langchain_xparse import XParseLoader
+
+loader = XParseLoader(
+    file_path="doc.pdf",
+    parse_provider="textin",
+    chunk_strategy="basic",
+    chunk_max_characters=1000,
+    embed_provider="qwen",
+    embed_model_name="text-embedding-v4",
+)
+
+docs = loader.load()
+# docs 中的每个文档都包含向量（embedding）
+```
+
+## 自定义 stages（高级用法）
+
+对于需要更精细控制的场景，可以使用自定义 stages：
+
+```python
+from langchain_xparse import XParseLoader
+
+loader = XParseLoader(
+    file_path="doc.pdf",
+    stages=[
+        {"type": "parse", "config": {"provider": "textin"}},
+        {"type": "chunk", "config": {"strategy": "by_page", "max_characters": 800}},
+    ],
+)
+
+docs = loader.load()
+```
+
+## 多文件处理
+
+支持同时处理多个文件：
+
+```python
+from langchain_xparse import XParseLoader
+
+loader = XParseLoader(file_path=["a.pdf", "b.pdf", "c.pdf"])
+
+for doc in loader.lazy_load():
+    print(f"文件: {doc.metadata.get('source')}")
+    print(f"内容预览: {doc.page_content[:50]}...")
+```
+
+## 文件对象处理
+
+支持直接传入文件对象：
+
+```python
+from langchain_xparse import XParseLoader
+
+with open("doc.pdf", "rb") as f:
+    loader = XParseLoader(file=f, metadata_filename="doc.pdf")
+    docs = loader.load()
+```
+
+> 注意：当传入文件对象时，必须设置 `metadata_filename` 参数。
+
+# 实战案例：xParse + Langchain 构建智能文档助手
+
+下面我们通过一个完整的示例，展示如何使用 `XParseLoader` 和 LangChain 构建一个文档问答系统。
+
+## 场景说明
+
+假设我们有一个 PDF 文档，想要构建一个问答系统，用户可以提问关于文档内容的问题，系统能够基于文档内容给出答案。
+
+## 实现步骤
+
+### 第一步：安装依赖
+
+```bash
+pip install langchain-xparse langchain langchain-milvus langchain-community pymilvus dashscope
+```
+
+### 第二步：导入必要的库
+
+```python
+import os
+from langchain_xparse import XParseLoader
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.chat_models import ChatTongyi
+from langchain_milvus import Milvus
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+```
+
+### 第三步：配置 API 凭证
+
+```python
+# 设置 xParse API 凭证
+os.environ["XPARSE_APP_ID"] = "your-app-id"
+os.environ["XPARSE_SECRET_CODE"] = "your-secret-code"
+
+# 设置 DashScope API Key（用于向量化和问答）
+os.environ["DASHSCOPE_API_KEY"] = "your-dashscope-api-key"
+```
+
+### 第四步：解析文档并创建向量存储
+
+```python
+# 使用 XParseLoader 解析文档（包含分块和向量化）
+loader = XParseLoader(
+    file_path="your_document.pdf",
+    parse_provider="textin",
+    chunk_strategy="by_title",  # 按标题分块，保留语义结构
+    chunk_max_characters=1000,
+    chunk_overlap=100,
+    embed_provider="qwen",  # 使用 Qwen 向量化模型
+    embed_model_name="text-embedding-v4",
+)
+
+# 加载文档（已包含向量）
+documents = loader.load()
+
+# 创建向量存储（使用与 Pipeline 相同的 embedding 配置）
+embedding = DashScopeEmbeddings(model="text-embedding-v4")
+vectorstore = Milvus.from_documents(
+    documents=documents,
+    embedding=embedding,
+    collection_name="documents",
+    connection_args={"uri": "./vectors.db"},  # Milvus 数据库路径
+    vector_field="embeddings",  # 向量字段名
+    primary_field="element_id",  # 主键字段
+    text_field="text",  # 文本字段
+    enable_dynamic_field=True  # 启用动态字段，支持返回所有 metadata
+)
+```
+
+### 第五步：创建检索链
+
+```python
+# 创建检索器
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3}  # 返回最相关的 3 个文档块
+)
+
+# 定义提示词模板
+prompt_template = """基于以下文档内容回答问题。如果你不知道答案，就说不知道，不要编造答案。
+
+文档内容：
+{context}
+
+问题：{question}
+
+答案："""
+
+PROMPT = PromptTemplate(
+    template=prompt_template,
+    input_variables=["context", "question"]
+)
+
+# 创建问答链（使用 Qwen 大模型）
+llm = ChatTongyi(
+    model="qwen-max",
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+)
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever,
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": PROMPT}
+)
+```
+
+### 第六步：进行问答
+
+```python
+# 提问
+question = "文档的主要内容是什么？"
+result = qa_chain.invoke({"query": question})
+
+print(f"问题: {question}")
+print(f"答案: {result['result']}")
+print(f"\n参考文档:")
+for doc in result['source_documents']:
+    print(f"- 页码 {doc.metadata.get('page_number')}: {doc.page_content[:100]}...")
+```
+
+## 完整代码示例
+
+```python
+import os
+from langchain_xparse import XParseLoader
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.chat_models import ChatTongyi
+from langchain_milvus import Milvus
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+
+# 配置 API 凭证
+os.environ["XPARSE_APP_ID"] = "your-app-id"
+os.environ["XPARSE_SECRET_CODE"] = "your-secret-code"
+os.environ["DASHSCOPE_API_KEY"] = "your-dashscope-api-key"
+
+# 解析文档（包含向量化）
+loader = XParseLoader(
+    file_path="your_document.pdf",
+    parse_provider="textin",
+    chunk_strategy="by_title",
+    chunk_max_characters=1000,
+    chunk_overlap=100,
+    embed_provider="qwen",
+    embed_model_name="text-embedding-v4",
+)
+documents = loader.load()
+
+# 创建向量存储（使用与 Pipeline 相同的 embedding 配置）
+embedding = DashScopeEmbeddings(model="text-embedding-v4")
+vectorstore = Milvus.from_documents(
+    documents=documents,
+    embedding=embedding,
+    collection_name="documents",
+    connection_args={"uri": "./vectors.db"},
+    vector_field="embeddings",
+    primary_field="element_id",
+    text_field="text",
+    enable_dynamic_field=True
+)
+
+# 创建检索链
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+prompt_template = """基于以下文档内容回答问题。如果你不知道答案，就说不知道，不要编造答案。
+
+文档内容：
+{context}
+
+问题：{question}
+
+答案："""
+PROMPT = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+
+llm = ChatTongyi(
+    model="qwen-max",
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+)
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever,
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": PROMPT}
+)
+
+# 进行问答
+question = "文档的主要内容是什么？"
+result = qa_chain.invoke({"query": question})
+print(f"问题: {question}")
+print(f"答案: {result['result']}")
+```
+
+# 一键运行示例
+
+下面提供一个完整的、可以直接运行的代码示例。您只需要设置 API 凭证和文档路径即可运行。
+
+## 前置要求
+
+1. 安装依赖：
+
+```bash
+pip install langchain-xparse langchain langchain-milvus langchain-community pymilvus dashscope
+```
+
+2. 准备一个 PDF 文档（例如：`example.pdf`）
+
+> 提示：`DASHSCOPE_API_KEY` 用于调用通义千问（Qwen）的向量化和大模型能力，请前往 [阿里云 DashScope 控制台](https://dashscope.console.aliyun.com/) 获取 API Key。
+
+## 完整代码
+
+将以下代码保存为 `document_qa.py`：
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+文档问答系统 - 一键运行示例
+使用 xParse 解析文档，LangChain 构建问答系统
+"""
+
+import os
+from langchain_xparse import XParseLoader
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.chat_models import ChatTongyi
+from langchain_milvus import Milvus
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+
+# ==================== 配置区域 ====================
+# 请在此处设置您的 API 凭证和文档路径
+
+# xParse API 凭证（必填）
+XPARSE_APP_ID = "your-app-id"  # 请替换为您的 app_id
+XPARSE_SECRET_CODE = "your-secret-code"  # 请替换为您的 secret_code
+
+# DashScope API Key（必填，用于向量化和问答）
+DASHSCOPE_API_KEY = "your-dashscope-api-key"  # 请替换为您的 DashScope API Key
+
+# 文档路径（必填）
+DOCUMENT_PATH = "example.pdf"  # 请替换为您的文档路径
+
+# Milvus 向量数据库存储路径（可选，默认：./vectors.db）
+MILVUS_DB_PATH = "./vectors.db"
+
+# 集合名称（可选，默认：documents）
+COLLECTION_NAME = "documents"
+
+# ==================== 代码区域 ====================
+# 以下代码无需修改，直接运行即可
+
+def main():
+    """主函数：构建文档问答系统"""
+    
+    # 设置环境变量
+    os.environ["XPARSE_APP_ID"] = XPARSE_APP_ID
+    os.environ["XPARSE_SECRET_CODE"] = XPARSE_SECRET_CODE
+    os.environ["DASHSCOPE_API_KEY"] = DASHSCOPE_API_KEY
+    
+    print("=" * 60)
+    print("文档问答系统启动")
+    print("=" * 60)
+    
+    # 第一步：解析文档（包含向量化）
+    print("\n[1/4] 正在解析文档...")
+    loader = XParseLoader(
+        file_path=DOCUMENT_PATH,
+        parse_provider="textin",
+        chunk_strategy="by_title",  # 按标题分块，保留语义结构
+        chunk_max_characters=1000,
+        chunk_overlap=100,
+        embed_provider="qwen",  # 使用 Qwen 向量化模型
+        embed_model_name="text-embedding-v4",
+    )
+    documents = loader.load()
+    print(f"✓ 解析完成，共 {len(documents)} 个文档块")
+    
+    # 第二步：创建向量存储（使用与 Pipeline 相同的 embedding 配置）
+    print("\n[2/4] 正在创建向量存储...")
+    embedding = DashScopeEmbeddings(model="text-embedding-v4")
+    vectorstore = Milvus.from_documents(
+        documents=documents,
+        embedding=embedding,
+        collection_name=COLLECTION_NAME,
+        connection_args={"uri": MILVUS_DB_PATH},
+        vector_field="embeddings",  # 向量字段名
+        primary_field="element_id",  # 主键字段
+        text_field="text",  # 文本字段
+        enable_dynamic_field=True  # 启用动态字段，支持返回所有 metadata
+    )
+    print("✓ 向量存储创建完成")
+    
+    # 第三步：创建检索链
+    print("\n[3/4] 正在创建检索链...")
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 3}  # 返回最相关的 3 个文档块
+    )
+    
+    # 定义提示词模板
+    prompt_template = """基于以下文档内容回答问题。如果你不知道答案，就说不知道，不要编造答案。
+
+文档内容：
+{context}
+
+问题：{question}
+
+答案："""
+    
+    PROMPT = PromptTemplate(
+        template=prompt_template,
+        input_variables=["context", "question"]
+    )
+    
+    # 创建 LLM 和问答链（使用 Qwen 大模型）
+    llm = ChatTongyi(
+        model="qwen-max",
+        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+    )
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=retriever,
+        return_source_documents=True,
+        chain_type_kwargs={"prompt": PROMPT}
+    )
+    print("✓ 检索链创建完成")
+    
+    # 第四步：交互式问答
+    print("\n[4/4] 系统就绪，开始问答")
+    print("=" * 60)
+    print("提示：输入 'quit' 或 'exit' 退出程序")
+    print("=" * 60)
+    
+    while True:
+        question = input("\n请输入您的问题: ").strip()
+        
+        if question.lower() in ['quit', 'exit', '退出']:
+            print("\n感谢使用，再见！")
+            break
+        
+        if not question:
+            print("问题不能为空，请重新输入。")
+            continue
+        
+        try:
+            print("\n正在思考...")
+            result = qa_chain.invoke({"query": question})
+            
+            print(f"\n【答案】")
+            print(result['result'])
+            
+            print(f"\n【参考文档】")
+            for i, doc in enumerate(result['source_documents'], 1):
+                page_num = doc.metadata.get('page_number', '未知')
+                content_preview = doc.page_content[:150].replace('\n', ' ')
+                print(f"{i}. 页码 {page_num}: {content_preview}...")
+                
+        except Exception as e:
+            print(f"\n错误: {e}")
+            print("请检查 API 凭证是否正确，网络连接是否正常。")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 运行方式
+
+1. 修改配置区域中的 API 凭证和文档路径
+2. 运行脚本：
+
+```bash
+python document_qa.py
+```
+
+3. 按照提示输入问题，系统会基于文档内容回答
+
+## 示例输出
+
+```
+============================================================
+文档问答系统启动
+============================================================
+
+[1/4] 正在解析文档...
+✓ 解析完成，共 15 个文档块
+
+[2/4] 正在创建向量存储...
+✓ 向量存储创建完成
+
+[3/4] 正在创建检索链...
+✓ 检索链创建完成
+
+[4/4] 系统就绪，开始问答
+============================================================
+提示：输入 'quit' 或 'exit' 退出程序
+============================================================
+
+请输入您的问题: 文档的主要内容是什么？
+
+正在思考...
+
+【答案】
+本文档主要介绍了 xParse 文档解析系统的功能和使用方法，包括...
+
+【参考文档】
+1. 页码 1: xParse 是一个端到端文档处理 AI 基础设施...
+2. 页码 2: 支持 PDF、Word、Excel 等多种格式...
+3. 页码 3: 提供强大的解析引擎和灵活的配置选项...
+```
+
+# 常见问题
+
+## Q: 如何获取 API Key？
+
+A: 
+- **xParse API 凭证**：请前往 [TextIn 工作台 - 账号与开发者信息](https://www.textin.com/console/dashboard/setting) 获取 `XPARSE_APP_ID` 和 `XPARSE_SECRET_CODE`，详细获取方式请参考 [API Key 文档](/pipeline/api-key)。
+- **DashScope API Key**：用于调用通义千问（Qwen）的向量化和大模型能力，请前往 [阿里云 DashScope 控制台](https://dashscope.console.aliyun.com/) 获取 API Key。
+
+## Q: xParse 支持哪些文件格式？
+
+A: xParse 支持以下文件格式：
+- **文档格式**：PDF、Word（.docx）、Excel（.xlsx）、PPT（.pptx）
+- **图片格式**：JPG、PNG、BMP、TIFF 等常见图片格式
+
+## Q: 如何选择合适的解析引擎？
+
+A: 根据文档类型和需求选择合适的解析引擎：
+- **textin**：适合大多数场景，速度和准确性俱佳（推荐）
+- **textin-lite**：适合纯文本、表格图片、电子档 PDF 等场景，速度更快，价格更低
+- **mineru**：适合学术论文等场景，表现优异
+- **paddle**：适合多语言和复杂文档场景（如 PPT），表现优异
+
+## Q: 分块策略（chunk_strategy）如何选择？
+
+A: 根据文档类型和用途选择：
+- **basic**：基础分块，按固定字符数切分，适合简单文档
+- **by_title**：按标题分块，保留文档的层级结构，适合结构化文档（推荐）
+- **by_page**：按页分块，适合页面独立性强的文档
+
+## Q: 解析后的结果格式是什么？
+
+A: `XParseLoader` 返回的是 LangChain 的 `Document` 对象，包含：
+- **page_content**：文档内容（Markdown 格式）
+- **metadata**：元数据信息，包括：
+  - `source`：文件路径或标识
+  - `filename`：文件名
+  - `page_number`：页码
+  - `category`：元素类型（如 title、paragraph、table 等）
+  - `element_id`：元素 ID
+  - 其他解析相关的元数据
+
+## Q: 支持异步处理吗？
+
+A: 支持。使用 `alazy_load()` 方法进行异步加载：
+
+```python
+async for doc in loader.alazy_load():
+    # 处理文档
+```
+
+## Q: 可以处理多个文件吗？
+
+A: 可以。传入文件路径列表即可：
+
+```python
+loader = XParseLoader(file_path=["file1.pdf", "file2.pdf"])
+```
+
+## Q: 如何自定义解析配置？
+
+A: 使用 `stages` 参数进行高级配置：
+
+```python
+loader = XParseLoader(
+    file_path="doc.pdf",
+    stages=[
+        {"type": "parse", "config": {"provider": "textin", "parse_mode": "auto"}},
+        {"type": "chunk", "config": {"strategy": "by_title", "max_characters": 800}},
+    ],
+)
+```
+
+更多配置选项请参考 [Pipeline API 文档](/api-reference/endpoint/pipeline)。
+
+# 相关资源
+
+- **GitHub 仓库**：https://github.com/intsig-textin/langchain-xparse
+- **PyPI 包**：https://pypi.org/project/langchain-xparse/
+- **xParse 产品文档**：[/pipeline/overview](/pipeline/overview)
+- **Pipeline API 参考**：[/api-reference/endpoint/pipeline](/api-reference/endpoint/pipeline)
+- **快速启动指南**：[/pipeline/quickstart](/pipeline/quickstart)
+- **TextIn xParse 产品介绍**：https://www.textin.com/market/detail/xparse

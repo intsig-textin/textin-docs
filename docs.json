@@ -261,10 +261,10 @@
               {
                 "group": "生态集成",
                 "pages": [
+                  "pipeline/integrations/langchain-nav",
                   "pipeline/integrations/dify-nav",
                   "pipeline/integrations/coze-nav",
                   "pipeline/integrations/ragflow-nav",
-                  "pipeline/integrations/langchain-nav",
                   "pipeline/integrations/mcp-nav",
                   "pipeline/integrations/skills-nav"
                 ]
@@ -335,10 +335,10 @@
           {
             "tab": "Integrations",
             "pages": [
+              "pipeline/integrations/langchain",
               "pipeline/integrations/dify",
               "pipeline/integrations/coze",
               "pipeline/integrations/ragflow",
-              "pipeline/integrations/langchain",
               "pipeline/integrations/mcp",
               "pipeline/integrations/skills"
             ]
