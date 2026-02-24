@@ -67,13 +67,6 @@
                 ]
               },
               {
-                "group": "Pipeline",
-                "tag": "NEW",
-                "pages": [
-                  "/xparse/pipeline-nav"
-                ]
-              },
-              {
                 "group": "FAQ",
                 "pages": [
                   "xparse/charge"
