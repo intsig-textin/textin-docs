@@ -22,7 +22,7 @@
         "version": "0.7.1",
         "tabs": [
           {
-            "tab": "Guides",
+            "tab": "使用指南",
             "groups": [
               {
                 "group": "产品概览",
@@ -106,9 +106,56 @@
             ]
           },
           {
-            "tab": "SDK",
+            "tab": "CLI & SDK",
             "pages": [
+              "xparse/v1/cli",
               "xparse/v1/sdk-python"
+            ]
+          },
+          {
+            "tab": "生态集成",
+            "pages": [
+              "xparse/v1/skills",
+              "xparse/v1/intergrations/langchain",
+              "xparse/v1/intergrations/dify",
+              "xparse/v1/intergrations/ragflow",
+              "xparse/v1/intergrations/openclaw",
+              "xparse/v1/intergrations/coze",
+              "xparse/v1/intergrations/mcp"
+            ]
+          },
+          {
+            "tab": "实战教程",
+            "pages": [
+              "xparse/v1/tutorials/overview",
+              {
+                "group": "xParse + LangChain 构建 Agent",
+                "pages": [
+                  "xparse/v1/tutorials/information-extraction-agent-tutorial",
+                  "xparse/v1/tutorials/audit-agent-tutorial",
+                  "xparse/v1/tutorials/medical-agent-tutorial",
+                  "xparse/v1/tutorials/document-extraction-agent-tutorial",
+                  "xparse/v1/tutorials/agent-tutorial"
+                ]
+              },
+              "xparse/v1/tutorials/agentic-rag-tutorial",
+              {
+                "group": "xParse + Dify 构建 Agent 和 RAG",
+                "pages": [
+                  "xparse/v1/tutorials/dify-rag-tutorial",
+                  "xparse/v1/tutorials/dify-information-extraction-agent-tutorial",
+                  "xparse/v1/tutorials/dify-contract-audit-agent-tutorial"
+                ]
+              },
+              "xparse/v1/tutorials/rag-tutorial",
+              "xparse/v1/tutorials/extract-tutorial",
+              "xparse/v1/tutorials/standalone-api-tutorial"
+            ]
+          },
+           {
+            "tab": "开源工具",
+            "pages": [
+              "xparse/v1/opensource/visualizer"
             ]
           }
         ]

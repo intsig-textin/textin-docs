@@ -1,0 +1,1431 @@
+---
+title: "信息提取Agent：结构化数据提取与整理"
+description: "使用 xParse + LangChain 构建信息提取Agent，实现从发票、医疗票据、合同、简历、产品文档、技术文档等文档中提取结构化信息并自动整理"
+---
+
+<Tip>
+  本教程面向信息提取场景，展示如何利用 xParse 作为数据底座，构建能够从非结构化文档中提取结构化信息（如发票、医疗票据、合同、简历、产品规格、API接口等）并自动整理的智能Agent。
+</Tip>
+
+## 场景介绍
+
+### 业务痛点
+
+在信息提取场景中，企业和开发者面临以下挑战：
+
+- **文档格式多样**：需要处理发票、医疗票据、合同、简历、产品文档、技术文档等多种格式
+- **信息提取繁琐**：需要从非结构化文档中提取结构化信息（发票信息、医疗费用、合同条款、个人信息、工作经历、产品参数、API接口等）
+- **数据标准化困难**：不同来源的数据格式不统一，需要标准化处理
+- **批量处理需求**：需要处理大量文档，手动提取效率低
+- **数据验证**：提取的数据需要验证和校验，确保准确性
+- **财务合规**：发票和医疗票据需要符合财务和税务要求
+- **法律风险**：合同信息提取需要准确识别关键条款和风险点
+
+### 解决方案
+
+通过构建信息提取Agent，我们可以实现：
+
+- **自动化文档解析**：使用 xParse Pipeline 自动解析各类文档
+- **智能信息提取**：从文档中提取结构化信息（发票信息、医疗费用、合同条款、简历信息、产品规格、API接口等）
+- **数据标准化**：将提取的信息转换为标准格式（JSON、CSV等）
+- **数据验证**：验证提取的数据完整性和准确性
+- **批量处理**：支持批量处理大量文档
+- **财务自动化**：自动提取发票和医疗票据信息，支持财务系统对接
+- **合同分析**：提取合同关键信息，识别重要条款和风险点
+
+## 架构设计
+
+```
+文档（PDF/Word/Excel/图片）
+    ↓
+[xParse Pipeline - Parse]
+    └─ 解析文档，提取结构化元素（elements）
+    ↓
+聚合元素文本（elements[].text）
+    ↓
+[LangChain Agent]
+    ├─ Tool 1: extract_invoice_info（提取发票信息）
+    ├─ Tool 2: extract_medical_bill_info（提取医疗票据信息）
+    ├─ Tool 3: extract_contract_info（提取合同信息）
+    ├─ Tool 4: extract_resume_info（提取简历信息）
+    ├─ Tool 5: extract_product_specs（提取产品规格）
+    ├─ Tool 6: extract_api_info（提取API信息）
+    └─ Tool 7: format_data（数据格式化）
+    ↓
+结构化数据（JSON/CSV）
+```
+
+**核心流程**：
+1. 使用 xParse 解析文档，获得 elements 列表
+2. 聚合所有 elements 的 text 字段，形成完整文档文本
+3. 将完整文本直接输入大模型，通过精心设计的 prompt 提取结构化信息
+
+## 环境准备
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install "xparse-client>=0.2.5" langchain langchain-community langchain-core \
+            python-dotenv pandas
+export XTI_APP_ID=your-app-id # 在 TextIn 官网注册获取
+export XTI_SECRET_CODE=your-secret-code # 在 TextIn 官网注册获取
+export DASHSCOPE_API_KEY=your-dashscope-api-key # 本教程使用通义千问大模型，也可以替换成其他大模型
+```
+
+> 提示：`X_TI_APP_ID` 与 `X_TI_SECRET_CODE` 参考 [API Key](/pipeline/api-key)，请登录 [Textin 工作台](https://www.textin.com/console/dashboard/setting) 获取。示例中使用 `通义千问` 的大模型能力，其他模型用法类似。
+
+
+## Step 1：配置 xParse Pipeline
+
+针对信息提取场景，我们只需要解析模块，无需分块和向量化：
+
+- **解析配置**：解析文档，提取结构化元素，使用 textin 解析引擎提升精度和速度
+- **表格优化**：确保表格结构完整提取（HTML格式-默认）
+
+```python
+from xparse_client import create_pipeline_from_config
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+EXTRACTION_PIPELINE_CONFIG = {
+    "source": {
+        "type": "local",
+        "directory": "./extraction_documents",
+        "pattern": ["*.pdf", "*.docx", "*.xlsx", "*.xls", "*.png", "*.jpg"]
+    },
+    "destination": {
+        "type": "local",  # 使用本地存储，保存解析结果
+        "output_dir": "./extraction_results"
+    },
+    "api_base_url": "https://api.textin.com/api/xparse",
+    "api_headers": {
+        "x-ti-app-id": os.getenv("XTI_APP_ID"),
+        "x-ti-secret-code": os.getenv("XTI_SECRET_CODE")
+    },
+    "stages": [
+        {
+            "type": "parse",
+            "config": {
+                "provider": "textin"  # 使用TextIn解析引擎，对表格和列表识别效果好
+            }
+        }
+    ]
+}
+```
+调用 xParse 得到解析后的结构化元素，聚合成完整文档文本，作为大模型信息提取的上下文：
+
+```python
+def parse_document(file_path: str) -> list:
+    """
+    解析单个文档，返回 elements 列表
+    
+    Args:
+        file_path: 文档路径
+        
+    Returns:
+        list: elements 列表，每个元素包含 text、type、metadata 等字段
+    """
+    import os
+    import json
+    from xparse_client import Pipeline, LocalSource
+    
+    # 创建临时配置，使用包含该文件的目录作为source
+    file_dir = os.path.dirname(os.path.abspath(file_path))
+    file_name_pattern = os.path.basename(file_path)
+    
+    # 创建临时Pipeline配置
+    temp_config = EXTRACTION_PIPELINE_CONFIG.copy()
+    temp_config["source"] = {
+        "type": "local",
+        "directory": file_dir,
+        "pattern": [file_name_pattern]  # 只处理指定的文件
+    }
+    
+    # 创建Pipeline并运行（pipeline.run() 没有返回值，结果会保存到destination）
+    pipeline = create_pipeline_from_config(temp_config)
+    pipeline.run()
+    
+    # 从destination配置的输出目录读取解析结果
+    output_dir = EXTRACTION_PIPELINE_CONFIG["destination"]["output_dir"]
+    
+    # 确保输出目录存在
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 获取文件名（不含路径和扩展名）
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    result_file = os.path.join(output_dir, f"{file_name}.json")
+    
+    # 读取JSON文件
+    if not os.path.exists(result_file):
+        raise FileNotFoundError(
+            f"解析结果文件不存在: {result_file}\n"
+            f"请检查输出目录: {output_dir}\n"
+            f"原始文件路径: {file_path}"
+        )
+    
+    with open(result_file, 'r', encoding='utf-8') as f:
+        elements = json.load(f)
+    
+    return elements
+
+def aggregate_text_from_elements(elements: list) -> str:
+    """
+    聚合 elements 中的 text 字段，形成完整文档文本
+    
+    Args:
+        elements: elements 列表
+        
+    Returns:
+        str: 聚合后的完整文本
+    """
+    texts = []
+    for element in elements:
+        if isinstance(element, dict):
+            text = element.get('text', '')
+        else:
+            text = getattr(element, 'text', '')
+        
+        if text and text.strip():
+            texts.append(text.strip())
+    
+    return "\n\n".join(texts)
+
+```
+
+## Step 2：构建 LangChain Tools
+
+首先，我们需要一个全局的文档文本存储，用于存储当前处理的文档内容：
+
+```python
+from langchain_core.tools import Tool
+from langchain_community.chat_models import ChatTongyi
+import os
+import json
+
+# 全局文档文本存储（实际应用中可以使用更持久化的存储）
+_document_texts = {}
+
+# 初始化 qwen-max 大模型
+llm = ChatTongyi(
+    model="qwen-max",
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+    temperature=0,  # 使用较低温度以获得更确定性的输出
+)
+
+def set_document_text(file_path: str, text: str):
+    """设置文档文本内容"""
+    _document_texts[file_path] = text
+
+def get_document_text(file_path: str = None) -> str:
+    """获取文档文本内容"""
+    if not _document_texts:
+        return ""  # 如果没有加载任何文档，返回空字符串
+    
+    if file_path not in ("None", "none", None, "", "null"):
+        return _document_texts.get(file_path, "")
+    # 如果没有指定文件，返回第一个文档的文本
+    return next(iter(_document_texts.values()), "")
+```
+
+### Tool 1: 提取发票信息
+
+```python
+def extract_invoice_info(file_path: str = None) -> str:
+    """
+    从发票中提取结构化信息（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - 发票基本信息（发票代码、发票号码、开票日期）
+    - 销售方信息（名称、纳税人识别号、地址电话、开户行及账号）
+    - 购买方信息（名称、纳税人识别号、地址电话、开户行及账号）
+    - 商品明细（名称、规格、单位、数量、单价、金额、税率、税额）
+    - 金额信息（合计金额、合计税额、价税合计）
+    - 其他信息（备注、收款人、复核人、开票人等）
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt，指导模型提取结构化信息
+    prompt = f"""请从以下发票文本中提取结构化信息，并以 JSON 格式返回。
+
+            要求提取的信息包括：
+            1. 发票基本信息：invoice_code（发票代码）、invoice_number（发票号码）、date（开票日期）
+            2. 销售方信息：name（名称）、tax_id（纳税人识别号）、address（地址电话）、bank_account（开户行及账号）
+            3. 购买方信息：name（名称）、tax_id（纳税人识别号）、address（地址电话）、bank_account（开户行及账号）
+            4. 商品明细（数组）：name、specification、unit、quantity、unit_price、amount、tax_rate、tax_amount
+            5. 金额信息：total_amount（合计金额）、tax_amount（合计税额）、total_with_tax（价税合计）
+            6. 其他信息：remark（备注）、payee（收款人）、reviewer（复核人）、drawer（开票人）
+
+            请严格按照以下 JSON 格式返回，如果某个字段不存在，请使用空字符串 "" 或空对象 {{}} 或空数组 []：
+
+            {{
+            "invoice_info": {{"invoice_code": "", "invoice_number": "", "date": ""}},
+            "seller": {{"name": "", "tax_id": "", "address": "", "bank_account": ""}},
+            "buyer": {{"name": "", "tax_id": "", "address": "", "bank_account": ""}},
+            "items": [{{"name": "", "specification": "", "unit": "", "quantity": "", "unit_price": "", "amount": "", "tax_rate": "", "tax_amount": ""}}],
+            "amounts": {{"total_amount": "", "tax_amount": "", "total_with_tax": ""}},
+            "other_info": {{"remark": "", "payee": "", "reviewer": "", "drawer": ""}}
+            }}
+
+            发票文本内容：
+            {context_text}
+
+            请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        
+        # 尝试从响应中提取 JSON（可能包含 markdown 代码块）
+        response_text = response.content.strip() if response.content else ""
+        
+        # 如果响应包含 markdown 代码块，提取其中的 JSON
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        # 解析 JSON
+        invoice_data = json.loads(response_text)
+        
+        # 返回格式化的 JSON
+        return json.dumps(invoice_data, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        # 如果 JSON 解析失败，返回错误信息
+        error_msg = f"JSON 解析失败：{str(e)}\n模型返回的原始内容：\n{response_text}"
+        print(error_msg)
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        # 其他错误
+        error_msg = f"提取信息时发生错误：{str(e)}"
+        print(error_msg)
+        if response_text:
+            print(f"模型返回的原始内容：\n{response_text}")
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 2: 提取医疗票据信息
+
+```python
+def extract_medical_bill_info(file_path: str = None) -> str:
+    """
+    从医疗票据中提取结构化信息（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - 患者信息（姓名、性别、年龄、身份证号、医保卡号）
+    - 医疗机构信息（医院名称、科室、医生姓名）
+    - 就诊信息（就诊日期、就诊类型、诊断结果）
+    - 费用明细（项目名称、数量、单价、金额、医保类型）
+    - 费用汇总（总费用、自费金额、医保支付、个人支付）
+    - 其他信息（发票号码、结算方式等）
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt
+    prompt = f"""请从以下医疗票据文本中提取结构化信息，包括患者信息、医疗机构信息、就诊信息、费用明细、费用汇总等，并以 JSON 格式返回。
+
+            医疗票据文本内容：
+            {context_text}
+
+            请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        medical_bill_data = json.loads(response_text)
+        return json.dumps(medical_bill_data, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 3: 提取合同信息
+
+```python
+def extract_contract_info(file_path: str = None) -> str:
+    """
+    从合同中提取结构化信息（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - 合同基本信息（合同编号、合同名称、签订日期、生效日期、到期日期）
+    - 合同双方（甲方、乙方信息：名称、地址、法定代表人、联系方式）
+    - 合同标的（标的物、服务内容、数量、金额）
+    - 关键条款（付款方式、交付方式、违约责任、争议解决）
+    - 金额信息（合同总金额、付款计划、保证金等）
+    - 其他信息（签署地点、签署人、附件等）
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt
+    prompt = f"""请从以下合同文本中提取结构化信息，包括合同基本信息、合同双方信息、合同标的、关键条款、金额信息等，并以 JSON 格式返回。
+
+            合同文本内容：
+            {context_text}
+
+            请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        contract_data = json.loads(response_text)
+        return json.dumps(contract_data, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 4: 提取简历信息
+
+```python
+def extract_resume_info(file_path: str = None) -> str:
+    """
+    从简历中提取结构化信息（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - 个人信息（姓名、性别、年龄、联系方式）
+    - 教育经历（学校、专业、学历、时间）
+    - 工作经历（公司、职位、时间、工作内容）
+    - 技能（专业技能、语言能力、证书等）
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt
+    prompt = f"""请从以下简历文本中提取结构化信息，包括个人信息、教育经历、工作经历、技能等，并以 JSON 格式返回。
+
+            简历文本内容：
+            {context_text}
+
+            请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        resume_data = json.loads(response_text)
+        return json.dumps(resume_data, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 5: 提取产品规格
+
+```python
+def extract_product_specs(file_path: str = None) -> str:
+    """
+    从产品文档中提取产品规格和技术参数（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - 产品名称和型号
+    - 技术参数（尺寸、重量、性能指标等）
+    - 功能特性
+    - 价格信息
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt
+    prompt = f"""请从以下产品文档文本中提取产品规格和技术参数，包括产品名称、型号、技术参数、功能特性、价格等，并以 JSON 格式返回。
+
+            产品文档文本内容：
+            {context_text}
+
+            请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        product_specs = json.loads(response_text)
+        return json.dumps(product_specs, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 6: 提取API信息
+
+```python
+def extract_api_info(file_path: str = None) -> str:
+    """
+    从技术文档中提取API接口信息（使用 qwen-max 大模型）
+    
+    提取内容包括：
+    - API端点（URL路径）
+    - 请求方法（GET、POST等）
+    - 请求参数
+    - 响应格式
+    - 认证方式
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 构建 prompt
+    prompt = f"""请从以下技术文档文本中提取API接口信息，包括API端点、请求方法、请求参数、响应格式、认证方式等，并以 JSON 格式返回。
+
+                技术文档文本内容：
+                {context_text}
+
+                请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    # 调用大模型提取信息
+    response_text = ""
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        api_info = json.loads(response_text)
+        return json.dumps(api_info, ensure_ascii=False, indent=2)
+        
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": "JSON 解析失败",
+            "raw_response": response_text if response_text else "无响应",
+            "error_detail": str(e)
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "error": "提取信息失败",
+            "error_detail": str(e),
+            "raw_response": response_text if response_text else "无响应"
+        }, ensure_ascii=False, indent=2)
+```
+
+### Tool 7: 数据格式化
+
+```python
+import pandas as pd
+
+def format_data(file_path: str = None) -> str:
+    """
+    将提取的数据格式化为标准格式（JSON、CSV等）
+    
+    支持格式：
+    - JSON格式
+    - CSV格式
+    - 表格格式
+    
+    Args:
+        file_path: 文档路径（可选），如果不提供则使用当前已加载的文档
+    """
+    # 获取文档文本
+    context_text = get_document_text(file_path)
+    
+    # 如果没有文档文本，返回提示信息
+    if not context_text:
+        return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+    
+    # 使用大模型提取结构化数据
+    prompt = f"""请从以下文本中提取所有键值对信息，并以 JSON 格式返回。
+
+                要求：
+                1. 提取所有形如"键：值"或"键:值"的键值对
+                2. 返回格式为数组，每个元素包含 key、value、source（来源文件名）
+
+                文本内容：
+                {context_text}
+
+                请返回 JSON 格式的数组，格式如下：
+                [
+                {{
+                    "key": "键名",
+                    "value": "值",
+                    "source": "文件名"
+                }}
+                ]
+
+                请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+
+    try:
+        from langchain_core.messages import HumanMessage
+        response = llm.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip() if response.content else ""
+        
+        # 提取 JSON（处理 markdown 代码块）
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            if json_end != -1:
+                response_text = response_text[json_start:json_end].strip()
+        
+        data_list = json.loads(response_text)
+        
+        if not data_list:
+            return "未找到可格式化的数据"
+        
+        # 格式化为JSON
+        json_output = json.dumps(data_list, ensure_ascii=False, indent=2)
+        
+        # 格式化为CSV（使用pandas）
+        try:
+            df = pd.DataFrame(data_list)
+            csv_output = df.to_csv(index=False)
+        except:
+            csv_output = "CSV格式化失败"
+        
+        return f"JSON格式：\n{json_output}\n\nCSV格式：\n{csv_output}"
+        
+    except Exception as e:
+        return f"数据格式化失败：{str(e)}"
+```
+
+### 组装所有Tools
+
+```python
+tools = [
+    Tool(
+        name="extract_invoice_info",
+        description="从发票中提取结构化信息，包括发票基本信息、销售方/购买方信息、商品明细、金额信息等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_invoice_info
+    ),
+    Tool(
+        name="extract_medical_bill_info",
+        description="从医疗票据中提取结构化信息，包括患者信息、医疗机构信息、就诊信息、费用明细、费用汇总等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_medical_bill_info
+    ),
+    Tool(
+        name="extract_contract_info",
+        description="从合同中提取结构化信息，包括合同基本信息、合同双方信息、合同标的、关键条款、金额信息等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_contract_info
+    ),
+    Tool(
+        name="extract_resume_info",
+        description="从简历中提取结构化信息，包括个人信息、教育经历、工作经历、技能等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_resume_info
+    ),
+    Tool(
+        name="extract_product_specs",
+        description="从产品文档中提取产品规格和技术参数，包括产品名称、型号、技术参数、功能特性、价格等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_product_specs
+    ),
+    Tool(
+        name="extract_api_info",
+        description="从技术文档中提取API接口信息，包括API端点、请求方法、请求参数、响应格式等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=extract_api_info
+    ),
+    Tool(
+        name="format_data",
+        description="将提取的数据格式化为标准格式（JSON、CSV等）。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+        func=format_data
+    )
+]
+```
+
+## Step 3：配置 LangChain Agent
+
+```python
+from langchain.agents import create_agent
+from langchain_community.chat_models import ChatTongyi
+
+llm = ChatTongyi(
+    model="qwen-max",
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+    temperature=0.2,  # 使用较低温度以获得更确定性的输出
+)
+
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    debug=True,
+    system_prompt="""你是一个专业的信息提取助手。你的任务是帮助用户：
+                    1. 从文档中提取结构化信息（发票、医疗票据、合同、简历、产品规格、API接口等）
+                    2. 将提取的信息格式化为标准格式（JSON、CSV等）
+                    3. 验证提取数据的完整性和准确性
+
+                    在回答时，请：
+                    - 提供结构化的提取结果
+                    - 使用JSON或表格格式展示数据
+                    - 如果数据不完整，说明缺失的部分
+                    - 使用工具获取准确的信息，不要猜测
+                    - 对于财务类文档（发票、医疗票据），确保金额和税务信息的准确性
+                    - 对于合同文档，重点关注关键条款和风险点
+                    """
+)
+```
+
+## Step 4：完整示例代码
+
+```python expandable
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+信息提取Agent完整示例
+"""
+
+import os
+import json
+from dotenv import load_dotenv
+from xparse_client import create_pipeline_from_config, Pipeline, LocalSource
+from langchain_core.tools import Tool
+from langchain.agents import create_agent
+from langchain_community.chat_models import ChatTongyi
+
+load_dotenv()
+
+class InformationExtractionAgent:
+    """信息提取Agent"""
+    
+    def __init__(self):
+        self.setup_pipeline()
+        self.setup_llm()
+        self.setup_agent()
+        # 文档文本存储（实际应用中可以使用更持久化的存储）
+        self._document_texts = {}
+    
+    def setup_pipeline(self):
+        """配置Pipeline"""
+        self.pipeline_config = {
+            "source": {
+                "type": "local",
+                "directory": "./extraction_documents",
+                "pattern": ["*.pdf", "*.docx", "*.xlsx", "*.xls", "*.png", "*.jpg"]
+            },
+            "destination": {
+                "type": "local",
+                "output_dir": "./extraction_results"
+            },
+            "api_base_url": "https://api.textin.com/api/xparse",
+            "api_headers": {
+                "x-ti-app-id": os.getenv("XTI_APP_ID"),
+                "x-ti-secret-code": os.getenv("XTI_SECRET_CODE")
+            },
+            "stages": [
+                {
+                    "type": "parse",
+                    "config": {"provider": "textin"}
+                }
+            ]
+        }
+    
+    def setup_llm(self):
+        """初始化大模型"""
+        self.llm = ChatTongyi(
+            model="qwen-max",
+            dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+            temperature=0,  # 使用较低温度以获得更确定性的输出
+        )
+    
+    def parse_document(self, file_path: str) -> list:
+        """
+        解析单个文档，返回 elements 列表
+        
+        Args:
+            file_path: 文档路径
+            
+        Returns:
+            list: elements 列表
+        """
+        import json
+        import os
+        from copy import deepcopy
+        
+        # 创建临时配置，使用包含该文件的目录作为source
+        file_dir = os.path.dirname(os.path.abspath(file_path))
+        file_name_pattern = os.path.basename(file_path)
+        
+        # 创建临时Pipeline配置
+        temp_config = deepcopy(self.pipeline_config)
+        temp_config["source"] = {
+            "type": "local",
+            "directory": file_dir,
+            "pattern": [file_name_pattern]  # 只处理指定的文件
+        }
+        
+        # 创建Pipeline并运行（pipeline.run() 没有返回值，结果会保存到destination）
+        pipeline = create_pipeline_from_config(temp_config)
+        pipeline.run()
+        
+        # 从destination配置的输出目录读取解析结果
+        output_dir = self.pipeline_config["destination"]["output_dir"]
+        
+        # 确保输出目录存在
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 获取文件名（不含路径和扩展名）
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        result_file = os.path.join(output_dir, f"{file_name}.json")
+        
+        # 读取JSON文件
+        if not os.path.exists(result_file):
+            raise FileNotFoundError(
+                f"解析结果文件不存在: {result_file}\n"
+                f"请检查输出目录: {output_dir}\n"
+                f"原始文件路径: {file_path}"
+            )
+        
+        with open(result_file, 'r', encoding='utf-8') as f:
+            elements = json.load(f)
+        
+        return elements
+    
+    def aggregate_text_from_elements(self, elements: list) -> str:
+        """
+        聚合 elements 中的 text 字段，形成完整文档文本
+        
+        Args:
+            elements: elements 列表
+            
+        Returns:
+            str: 聚合后的完整文本
+        """
+        texts = []
+        for element in elements:
+            if isinstance(element, dict):
+                text = element.get('text', '')
+            else:
+                text = getattr(element, 'text', '')
+            
+            if text and text.strip():
+                texts.append(text.strip())
+        
+        return "\n\n".join(texts)
+    
+    def load_document(self, file_path: str):
+        """
+        加载并解析文档，将文本内容存储到内存中
+        
+        Args:
+            file_path: 文档路径
+        """
+        print(f"正在解析文档: {file_path}")
+        elements = self.parse_document(file_path)
+        text = self.aggregate_text_from_elements(elements)
+        self._document_texts[file_path] = text
+        print(f"文档解析完成，文本长度: {len(text)} 字符")
+    
+    def get_document_text(self, file_path: str = None) -> str:
+        """
+        获取文档文本内容
+        
+        Args:
+            file_path: 文档路径（可选），如果不提供则返回第一个文档的文本
+            
+        Returns:
+            str: 文档文本内容
+        """
+        if not self._document_texts:
+            return ""  # 如果没有加载任何文档，返回空字符串
+        
+        if file_path not in ("None", "none", None, "", "null"):
+            return self._document_texts.get(file_path, "")
+        # 如果没有指定文件，返回第一个文档的文本
+        return next(iter(self._document_texts.values()), "")
+    
+    def setup_agent(self):
+        """配置Agent和Tools"""
+        tools = [
+            Tool(
+                name="extract_invoice_info",
+                description="从发票中提取结构化信息，包括发票基本信息、销售方/购买方信息、商品明细、金额信息等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_invoice_info
+            ),
+            Tool(
+                name="extract_medical_bill_info",
+                description="从医疗票据中提取结构化信息，包括患者信息、医疗机构信息、就诊信息、费用明细、费用汇总等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_medical_bill_info
+            ),
+            Tool(
+                name="extract_contract_info",
+                description="从合同中提取结构化信息，包括合同基本信息、合同双方信息、合同标的、关键条款、金额信息等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_contract_info
+            ),
+            Tool(
+                name="extract_resume_info",
+                description="从简历中提取结构化信息，包括个人信息、教育经历、工作经历、技能等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_resume_info
+            ),
+            Tool(
+                name="extract_product_specs",
+                description="从产品文档中提取产品规格和技术参数，包括产品名称、型号、技术参数、功能特性、价格等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_product_specs
+            ),
+            Tool(
+                name="extract_api_info",
+                description="从技术文档中提取API接口信息，包括API端点、请求方法、请求参数、响应格式等。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.extract_api_info
+            ),
+            Tool(
+                name="format_data",
+                description="将提取的数据格式化为标准格式（JSON、CSV等）。如果已加载文档，可以直接调用无需参数；否则需要提供文档路径。",
+                func=self.format_data
+            )
+        ]
+        
+        self.agent = create_agent(
+            model=self.llm,
+            tools=tools,
+            debug=True,
+            system_prompt="""你是一个专业的信息提取助手。你的任务是帮助用户：
+                            1. 从文档中提取结构化信息（发票、医疗票据、合同、简历、产品规格、API接口等）
+                            2. 将提取的信息格式化为标准格式（JSON、CSV等）
+                            3. 验证提取数据的完整性和准确性
+
+                            重要提示：
+                            - 在使用提取工具之前，确保文档已经通过 load_document() 方法加载
+                            - 如果工具返回"未找到文档内容"的错误，说明需要先加载文档
+                            - 可以直接调用提取工具，无需提供文档路径（如果文档已加载）
+
+                            在回答时，请：
+                            - 提供结构化的提取结果
+                            - 使用JSON或表格格式展示数据
+                            - 如果数据不完整，说明缺失的部分
+                            - 使用工具获取准确的信息，不要猜测
+                            - 对于财务类文档（发票、医疗票据），确保金额和税务信息的准确性
+                            - 对于合同文档，重点关注关键条款和风险点
+                            """
+        )
+    
+    def extract_invoice_info(self, file_path: str = None) -> str:
+        """提取发票信息（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下发票文本中提取结构化信息，并以 JSON 格式返回。
+
+                    要求提取的信息包括：
+                    1. 发票基本信息：invoice_code（发票代码）、invoice_number（发票号码）、date（开票日期）
+                    2. 销售方信息：name（名称）、tax_id（纳税人识别号）、address（地址电话）、bank_account（开户行及账号）
+                    3. 购买方信息：name（名称）、tax_id（纳税人识别号）、address（地址电话）、bank_account（开户行及账号）
+                    4. 商品明细（数组）：name、specification、unit、quantity、unit_price、amount、tax_rate、tax_amount
+                    5. 金额信息：total_amount（合计金额）、tax_amount（合计税额）、total_with_tax（价税合计）
+                    6. 其他信息：remark（备注）、payee（收款人）、reviewer（复核人）、drawer（开票人）
+
+                    请严格按照以下 JSON 格式返回，如果某个字段不存在，请使用空字符串 "" 或空对象 {{}} 或空数组 []：
+
+                    {{
+                    "invoice_info": {{"invoice_code": "", "invoice_number": "", "date": ""}},
+                    "seller": {{"name": "", "tax_id": "", "address": "", "bank_account": ""}},
+                    "buyer": {{"name": "", "tax_id": "", "address": "", "bank_account": ""}},
+                    "items": [{{"name": "", "specification": "", "unit": "", "quantity": "", "unit_price": "", "amount": "", "tax_rate": "", "tax_amount": ""}}],
+                    "amounts": {{"total_amount": "", "tax_amount": "", "total_with_tax": ""}},
+                    "other_info": {{"remark": "", "payee": "", "reviewer": "", "drawer": ""}}
+                    }}
+
+                    发票文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def _extract_with_llm(self, prompt: str) -> str:
+        """
+        通用的大模型提取方法，处理JSON解析和错误处理
+        
+        Args:
+            prompt: 发送给大模型的prompt
+            
+        Returns:
+            str: JSON格式的提取结果
+        """
+        try:
+            from langchain_core.messages import HumanMessage
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            response_text = response.content.strip() if response.content else ""
+            
+            # 提取 JSON（处理 markdown 代码块）
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    response_text = response_text[json_start:json_end].strip()
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    response_text = response_text[json_start:json_end].strip()
+            
+            # 验证是否为有效JSON
+            data = json.loads(response_text)
+            return json.dumps(data, ensure_ascii=False, indent=2)
+        except json.JSONDecodeError as e:
+            return json.dumps({
+                "error": "JSON 解析失败",
+                "raw_response": response_text if 'response_text' in locals() else "无响应",
+                "error_detail": str(e)
+            }, ensure_ascii=False, indent=2)
+        except Exception as e:
+            return json.dumps({
+                "error": "提取信息失败",
+                "error_detail": str(e),
+                "raw_response": response_text if 'response_text' in locals() else "无响应"
+            }, ensure_ascii=False, indent=2)
+    
+    def extract_resume_info(self, file_path: str = None) -> str:
+        """提取简历信息（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下简历文本中提取结构化信息，包括个人信息、教育经历、工作经历、技能等，并以 JSON 格式返回。
+
+                    简历文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def extract_product_specs(self, file_path: str = None) -> str:
+        """提取产品规格（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下产品文档文本中提取产品规格和技术参数，包括产品名称、型号、技术参数、功能特性、价格等，并以 JSON 格式返回。
+
+                    产品文档文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def extract_api_info(self, file_path: str = None) -> str:
+        """提取API信息（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下技术文档文本中提取API接口信息，包括API端点、请求方法、请求参数、响应格式、认证方式等，并以 JSON 格式返回。
+
+                    技术文档文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def extract_medical_bill_info(self, file_path: str = None) -> str:
+        """提取医疗票据信息（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下医疗票据文本中提取结构化信息，包括患者信息、医疗机构信息、就诊信息、费用明细、费用汇总等，并以 JSON 格式返回。
+
+                    医疗票据文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def extract_contract_info(self, file_path: str = None) -> str:
+        """提取合同信息（使用 qwen-max 大模型）"""
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下合同文本中提取结构化信息，包括合同基本信息、合同双方信息、合同标的、关键条款、金额信息等，并以 JSON 格式返回。
+
+                    合同文本内容：
+                    {context_text}
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        return self._extract_with_llm(prompt)
+    
+    def format_data(self, file_path: str = None) -> str:
+        """数据格式化"""
+        import pandas as pd
+        
+        context_text = self.get_document_text(file_path)
+        
+        # 如果没有文档文本，返回提示信息
+        if not context_text:
+            return "错误：未找到文档内容。请先使用 load_document() 方法加载文档，或提供文档路径。"
+        
+        prompt = f"""请从以下文本中提取所有键值对信息，并以 JSON 格式返回。
+
+                    要求：
+                    1. 提取所有形如"键：值"或"键:值"的键值对
+                    2. 返回格式为数组，每个元素包含 key、value、source（来源文件名）
+
+                    文本内容：
+                    {context_text}
+
+                    请返回 JSON 格式的数组，格式如下：
+                    [
+                    {{
+                        "key": "键名",
+                        "value": "值",
+                        "source": "文件名"
+                    }}
+                    ]
+
+                    请只返回 JSON 格式的数据，不要包含任何其他解释或说明文字。"""
+        
+        try:
+            result_json = self._extract_with_llm(prompt)
+            data_list = json.loads(result_json)
+            
+            if isinstance(data_list, dict) and "error" in data_list:
+                return result_json
+            
+            if not data_list:
+                return "未找到可格式化的数据"
+            
+            # 格式化为CSV
+            try:
+                df = pd.DataFrame(data_list)
+                csv_output = df.to_csv(index=False)
+                return f"JSON格式：\n{result_json}\n\nCSV格式：\n{csv_output}"
+            except Exception as e:
+                return f"JSON格式：\n{result_json}\n\nCSV格式化失败：{str(e)}"
+        except Exception as e:
+            return f"数据格式化失败：{str(e)}"
+    
+    def query(self, question: str) -> str:
+        """查询Agent"""
+        from langchain_core.messages import HumanMessage
+        response = self.agent.invoke({
+            "messages": [HumanMessage(content=question)]
+        })
+        return response["messages"][-1].content
+
+def main():
+    """主函数"""
+    agent = InformationExtractionAgent()
+    
+    # 1. 加载文档
+    document_path = "./extraction_documents/invoice.pdf"  # 示例路径
+    if os.path.exists(document_path):
+        agent.load_document(document_path)
+    
+    # 2. 查询示例
+    questions = [
+        "从发票中提取发票代码、发票号码、销售方和购买方信息、商品明细和金额",
+        # "从医疗票据中提取患者信息、医院信息、诊断结果和费用明细",
+        # "从合同中提取合同编号、合同双方信息、合同金额和关键条款",
+        # "从简历中提取所有个人信息、教育经历和工作经历",
+        # "从产品文档中提取产品规格和技术参数",
+        # "从技术文档中提取所有API接口信息",
+        "将提取的数据格式化为JSON格式"
+    ]
+    
+    for question in questions:
+        print(f"\n{'='*60}")
+        print(f"问题: {question}")
+        print(f"{'='*60}")
+        answer = agent.query(question)
+        print(f"\n回答:\n{answer}")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 使用示例
+
+### 示例1：提取发票信息
+
+```python
+agent = InformationExtractionAgent()
+
+# 1. 加载文档
+agent.load_document("./extraction_documents/invoice.pdf")
+
+# 2. 提取信息
+response = agent.query("从发票中提取发票代码、发票号码、销售方和购买方信息、商品明细和金额")
+print(response)
+```
+
+### 示例2：提取医疗票据信息
+
+```python
+# 加载医疗票据文档
+agent.load_document("./extraction_documents/medical_bill.pdf")
+
+# 提取信息
+response = agent.query("从医疗票据中提取患者姓名、医院名称、诊断结果、总费用和医保支付金额")
+print(response)
+```
+
+### 示例3：提取合同信息
+
+```python
+# 加载合同文档
+agent.load_document("./extraction_documents/contract.pdf")
+
+# 提取信息
+response = agent.query("从合同中提取合同编号、甲方和乙方信息、合同金额、付款方式和违约责任")
+print(response)
+```
+
+### 示例4：提取简历信息
+
+```python
+# 加载简历文档
+agent.load_document("./extraction_documents/resume.pdf")
+
+# 提取信息
+response = agent.query("从简历中提取姓名、联系方式、教育经历和工作经历")
+print(response)
+```
+
+### 示例5：提取产品规格
+
+```python
+# 加载产品文档
+agent.load_document("./extraction_documents/product_spec.pdf")
+
+# 提取信息
+response = agent.query("从产品文档中提取产品名称、型号、技术参数和价格")
+print(response)
+```
+
+### 示例6：提取API信息
+
+```python
+# 加载技术文档
+agent.load_document("./extraction_documents/api_docs.pdf")
+
+# 提取信息
+response = agent.query("从技术文档中提取所有API端点、请求方法和参数")
+print(response)
+```
+
+## 最佳实践
+
+1. **解析优化**：使用 TextIn 解析引擎，对表格和列表识别效果好
+2. **批量处理**：支持批量处理多个文档，提高效率
+3. **格式标准化**：将提取的数据转换为标准格式（JSON、CSV），便于后续处理
+4. **财务文档处理**：
+   - 发票提取时重点关注发票代码、号码、金额等关键信息
+   - 医疗票据提取时注意区分自费、医保支付等不同费用类型
+   - 确保金额计算的准确性，支持财务系统对接
+5. **合同文档处理**：
+   - 重点关注合同双方信息、合同金额、关键条款
+   - 识别违约责任、争议解决等重要条款
+   - 提取合同有效期，便于合同管理
+6. **Prompt 优化**：针对不同文档类型优化 prompt，明确提取字段和格式要求，提高提取准确率
+7. **错误处理**：对提取失败的情况进行记录和人工复核，处理 JSON 解析错误
+8. **文档管理**：在实际应用中，建议使用持久化存储（如数据库）管理文档文本，而不是内存字典
+9. **性能优化**：对于长文档，可以考虑分段处理或使用流式处理，避免一次性加载过大的文本
+
+## 常见问题
+
+**Q: 如何提高提取准确率？**  
+A: 1) 优化文档格式，确保结构清晰；2) 优化 prompt，明确提取字段和格式要求；3) 使用 qwen-max 大模型进行提取，能更好地理解文档语义；4) 对提取结果进行验证和校验。
+
+**Q: 如何处理格式不统一的文档？**  
+A: 1) 先统一文档格式；2) 使用多种提取策略；3) 人工校验和修正。
+
+**Q: 如何批量处理大量文档？**  
+A: 1) 遍历文档目录，逐个调用 `load_document()` 加载文档；2) 并行处理多个文档（使用多线程或异步）；3) 使用队列管理任务，避免内存溢出。
+
+**Q: 发票信息提取不准确怎么办？**  
+A: 1) 确保发票图片清晰，OCR识别准确；2) 优化 prompt，明确发票字段的提取要求；3) 对于特殊格式的发票，可以在 prompt 中添加示例或特殊说明；4) 检查解析结果，确保 elements 中的文本完整。
+
+**Q: 医疗票据的费用明细如何提取？**  
+A: 1) 优先使用表格识别功能提取费用明细表；2) 在 prompt 中明确费用明细的字段要求（项目名称、数量、单价、金额、医保类型等）；3) 使用大模型提取，能更好地理解表格结构和语义；4) 区分医保支付、自费等不同费用类型。
+
+**Q: 合同关键条款如何识别？**  
+A: 1) 在 prompt 中明确要求提取关键条款（如"违约责任"、"争议解决"等）；2) 使用大模型理解合同语义，识别重要条款；3) 提取完整条款内容，不要截断。
+
+**Q: 文档太长导致大模型无法处理怎么办？**  
+A: 1) 对于超长文档，可以按页面或章节分段处理；2) 只提取关键部分的信息；3) 使用支持更长上下文的模型；4) 考虑使用流式处理或分块提取策略。
+
+## 相关文档
+
+- [快速启动](/pipeline/quickstart) - 了解Pipeline基本使用方法
+- [文档元素和元数据](/pipeline/elements-metadata) - 了解数据结构
+- [结果回溯与可视化](/pipeline/traceability) - 了解如何追溯结果
+- [Agent教程](/pipeline/tutorial/agent-tutorial) - 了解通用Agent构建方法
+
