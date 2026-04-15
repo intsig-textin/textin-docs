@@ -32,6 +32,15 @@
                   "xparse/product-manual"
                 ]
               },
+               {
+                "group": "文档解析新版",
+                "tag": "NEW",
+                "pages": [
+                  "xparse/v1/quickstart",
+                  "xparse/v1/parse-config",
+                  "xparse/v1/parse-response"
+                ]
+              },
               {
                 "group": "文档解析",
                 "pages": [
@@ -49,15 +58,6 @@
                       "xparse/parse-debug-apifox"
                     ]
                   }
-                ]
-              },
-              {
-                "group": "文档解析新版",
-                "tag": "NEW",
-                "pages": [
-                  "xparse/v1/quickstart",
-                  "xparse/v1/parse-config",
-                  "xparse/v1/parse-response"
                 ]
               },
               {
@@ -86,21 +86,21 @@
           {
             "tab": "API",
             "groups": [
-              {
-                "group": "智能文档解析",
-                "pages": [
-                  "api-reference/endpoint/parse",
-                  "api-reference/endpoint/extract-v3",
-                  "api-reference/endpoint/parse-vlm"
-                ]
-              },
-              {
+               {
                 "group": "智能文档解析-新版",
                 "tag": "NEW",
                 "pages": [
                   "api-reference/endpoint/xparse/v1/parse-sync",
                   "api-reference/endpoint/xparse/v1/parse-async",
                   "api-reference/endpoint/xparse/v1/parse-async-status"
+                ]
+              },
+              {
+                "group": "智能文档解析",
+                "pages": [
+                  "api-reference/endpoint/parse",
+                  "api-reference/endpoint/extract-v3",
+                  "api-reference/endpoint/parse-vlm"
                 ]
               }
             ]
