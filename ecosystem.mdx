@@ -2,3 +2,134 @@
 title: "Textin 生态集成"
 description: "Textin xParse 已集成主流 Agent 框架、RAG 框架与生产力工具，提供标准化文档解析能力"
 ---
+
+## Skills & MCP
+
+为各类 AI Agent 框架提供标准化的文档解析能力封装，无需编写解析代码，Agent 通过自然语言即可调用。
+
+### Skills 资源与下载
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub 源码下载"
+    icon="github"
+    href="https://github.com/intsig-textin/xparse-skills"
+  >
+    开源代码仓库，查看完整源码和文档
+  </Card>
+  <Card
+    title="ClawHub 托管平台"
+    icon="cloud"
+    href="https://clawhub.ai/intsig-textin/xparse-parser"
+  >
+    官方托管平台，一键安装和部署
+  </Card>
+  <Card
+    title="腾讯云国内镜像"
+    icon="server"
+    href="https://skillhub.cn/skills/xparse-parser"
+  >
+    国内加速访问，提供稳定的镜像服务
+  </Card>
+  <Card
+    title="ModelScope Skills"
+    icon="sparkles"
+  >
+    ModelScope 技能市场（即将上线）
+  </Card>
+</CardGroup>
+
+### 官方平台集成
+
+<CardGroup cols={3}>
+  <Card
+    title="OpenClaw"
+    icon="puzzle-piece"
+  >
+    **官方 SDK 插件**
+    
+    作为 OpenClaw SDK 官方签名的文档解析插件，已纳入主流 Node.js Agent 框架的推荐工具链
+  </Card>
+  <Card
+    title="ZeroClaw"
+    icon="code"
+  >
+    **低代码技能**
+    
+    面向低代码及零代码 Agent 框架的轻量化解析 Skill，无需编写解析代码即可实现多格式文档的结构化信息抽取
+  </Card>
+  <Card
+    title="Nanobot"
+    icon="microchip"
+  >
+    **微内核核心**
+    
+    嵌入式 Agent 场景下的最小解析单元，以微内核架构实现 PDF、DOCX 等文档的高效结构化抽取
+  </Card>
+  <Card
+    title="NanoClaw"
+    icon="feather"
+  >
+    **轻量插件**
+    
+    Node.js 生态中轻量却不失完整的解析插件，为资源受限环境提供与 OpenClaw 同源的文档处理能力
+  </Card>
+  <Card
+    title="PicoClaw"
+    icon="bolt"
+  >
+    **边缘/Serverless**
+    
+    专为边缘计算和函数计算场景裁剪的超轻量解析器，在百 KB 级体积内完成多格式文档的标准化输出
+  </Card>
+  <Card
+    title="飞书 aily"
+    icon="message-square"
+  >
+    **飞书原生技能**
+    
+    飞书原生 Agent 平台的官方解析插件，深度集成于飞书 aily 技能体系，让 Agent 像读取普通文本一样解析 PDF、PPT 与 DOCX 文档
+  </Card>
+  <Card
+    title="腾讯 QClaw"
+    icon="bot"
+  >
+    **腾讯本地 Agent**
+    
+    腾讯官方出品的个人 AI 助手，已内置 Textin 解析技能。用户通过自然语言即可让 QClaw 理解任意文档
+  </Card>
+  <Card
+    title="钉钉悟空"
+    icon="users"
+  >
+    **钉钉内置基座**
+    
+    钉钉"悟空"平台的内置解析技能，无需额外集成，Agent 开箱即用，具备企业级多格式文档理解能力
+  </Card>
+</CardGroup>
+
+### MCP Server
+
+实现大模型客户端与 Textin 解析引擎的标准化通信，让模型能够"看懂"任意格式文档。按照[文档说明](/pipeline/api-key)获取 APPID 与 APPSECRET，然后配置 MCP Server：
+
+```json
+{
+  "mcpServers": {
+    "textin-ocr": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@intsig/server-textin"
+      ],
+      "env": {
+        "APPID": "<YOUR_APPID>",
+        "APPSECRET": "<YOUR_APPSECRET>",
+        "MCP_SERVER_REQUEST_TIMEOUT": "600000"
+      },
+      "timeout": 600
+    }
+  }
+}
+```
+
+查看完整使用教程：[https://github.com/intsig-textin/textin-mcp](https://github.com/intsig-textin/textin-mcp)
