@@ -22,7 +22,7 @@
         "version": "0.7.1",
         "tabs": [
           {
-            "tab": "Guides",
+            "tab": "使用指南",
             "groups": [
               {
                 "group": "产品概览",
@@ -106,9 +106,23 @@
             ]
           },
           {
-            "tab": "SDK",
+            "tab": "CLI & SDK",
             "pages": [
+              "xparse/v1/cli",
               "xparse/v1/sdk-python"
+            ]
+          },
+          {
+            "tab": "生态集成",
+            "pages": [
+              "xparse/v1/ecosystem/skills-mcp",
+              "xparse/v1/ecosystem/rag-agent"
+            ]
+          },
+          {
+            "tab": "开源工具",
+            "pages": [
+              "xparse/v1/open-source/visualizer"
             ]
           }
         ]
@@ -278,6 +292,9 @@
               {
                 "group": "生态集成",
                 "pages": [
+                  "ecosystem/skills-mcp",
+                  "ecosystem/cli-sdk",
+                  "ecosystem/rag-agent",
                   "pipeline/integrations/langchain-nav",
                   "pipeline/integrations/dify-nav",
                   "pipeline/integrations/coze-nav",
