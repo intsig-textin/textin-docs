@@ -1,0 +1,138 @@
+---
+title: "项目简介"
+description: "基于 xParse 的结构化抽取开源示例项目集合，每个项目独立可运行，覆盖银行流水、发票、医疗报告、合同审查、招标文件、财务报表等场景。"
+---
+
+<Tip>
+  所有示例项目均为前后端完整的独立应用，克隆仓库后填入 API 凭证即可一键启动。
+  源码仓库：[intsig-textin/xparse-sample-projects](https://github.com/intsig-textin/xparse-sample-projects)
+</Tip>
+
+## 项目总览
+
+<CardGroup cols={2}>
+  <Card title="银行流水抽取" icon="building-columns" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/bank-statement-extract">
+    支持 PDF/图片，分批抽取交易明细，含余额连续性校验与 JSON/CSV 导出。
+  </Card>
+  <Card title="海外发票抽取" icon="file-invoice-dollar" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/invoice-extract">
+    支持 PDF/Word/图片，自动分类、抽取头部字段与明细行，含规则校验。
+  </Card>
+  <Card title="医疗报告抽取" icon="stethoscope" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/medical-report-extract">
+    支持扫描件与图片，抽取患者信息、诊断、检查指标、治疗与预后。
+  </Card>
+  <Card title="合同审查" icon="file-contract" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/contract-review">
+    条款风险审阅、规范审阅、主体识别，支持导出 Word 报告。
+  </Card>
+  <Card title="招标文件解析" icon="gavel" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/tender-doc-parse">
+    按 6 大模块并发抽取基础信息、资格要求、评审要求等结构化字段。
+  </Card>
+  <Card title="财务三大表抽取" icon="chart-line" href="https://github.com/intsig-textin/xparse-sample-projects/tree/main/financial-report-extract">
+    基于规则提取资产负债表、利润表、现金流量表，无需大模型。
+  </Card>
+</CardGroup>
+
+## 银行流水抽取
+
+面向财务审计、贷款审批、个人记账等场景。上传银行流水 PDF 或图片，OCR 解析完成后立即展示结果页，用户手动点击「AI 抽取」触发结构化提取。长流水表格自动按行数分批并发送给 LLM，各批结果流式追加到交易明细表。提取完成后进行余额连续性校验，支持导出 JSON 和 CSV。
+
+**技术栈**：Python + FastAPI / React + Vite / TextIn 文档解析 / OpenAI 兼容接口
+
+```bash
+# 后端
+cd bank-statement-extract/backend
+cp ../.env.example ../.env  # 填入凭证
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd bank-statement-extract/frontend
+npm install && npm run dev   # http://localhost:5173
+```
+
+## 海外发票抽取
+
+面向跨境业务场景的发票结构化抽取工具。支持 PDF/Word/图片上传，自动分类发票类型，抽取头部字段、明细行，并进行金额一致性等规则校验。
+
+**技术栈**：Python + FastAPI / React + TypeScript + Vite / TextIn 文档解析 / OpenAI 兼容接口
+
+```bash
+# 后端
+cd invoice-extract/backend
+cp ../.env.example ../.env  # 填入凭证
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd invoice-extract/frontend
+npm install && npm run dev   # http://localhost:5173
+```
+
+## 医疗报告抽取
+
+面向医疗文档结构化场景。支持检验单、影像报告、出院小结等多种文档类型，针对扫描件和拍照件做了优化处理，抽取患者信息、诊断、检查指标、治疗与预后建议。
+
+**技术栈**：Python + FastAPI / React + Vite / TextIn 文档解析 / OpenAI 兼容接口
+
+```bash
+# 后端
+cd medical-report-extract/backend
+cp ../.env.example ../.env  # 填入凭证
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd medical-report-extract/frontend
+npm install && npm run dev   # http://localhost:5173
+```
+
+## 合同审查
+
+面向合同初审场景。解析合同正文后并行执行条款风险审阅（责任、违约、知识产权、保密、争议解决）和规范审阅（错漏、一致性、格式、修订），自动识别甲乙方主体，支持导出 Word 审查报告。
+
+**技术栈**：Python + FastAPI / React + Vite / TextIn 文档解析 / OpenAI 兼容接口
+
+```bash
+# 后端
+cd contract-review/backend
+cp ../.env.example ../.env  # 填入凭证
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd contract-review/frontend
+npm install && npm run dev   # http://localhost:5173
+```
+
+## 招标文件解析
+
+面向招采场景。将招标文件按标题切块并路由到 6 个模块（基础信息、资格要求、评审要求、投标要求、无效标风险、附件材料），各模块并发抽取，输出结构化 JSON，支持导出汇总结果。
+
+**技术栈**：Python + FastAPI / React + TypeScript + Vite / TextIn 文档解析 / OpenAI 兼容接口
+
+```bash
+# 后端
+cd tender-doc-parse/backend
+cp ../.env.example ../.env  # 填入凭证
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd tender-doc-parse/frontend
+npm install && npm run dev   # http://localhost:5173
+```
+
+## 财务三大表抽取
+
+面向财务分析、投研辅助场景。基于 TextIn 返回的结构化 `detail` 字段，通过规则自动定位并提取资产负债表、利润表、现金流量表，前端自动计算同比趋势，支持 CSV 导出。**无需大模型。**
+
+**技术栈**：Python + FastAPI / React + TypeScript + Create React App / TextIn 文档解析
+
+```bash
+# 后端（仅需 TextIn 凭证，无需大模型配置）
+cd financial-report-extract/backend
+cp ../.env.example ../.env  # 填入 TEXTIN_APP_ID 和 TEXTIN_SECRET_CODE
+pip install -r requirements.txt && python main.py
+
+# 前端
+cd financial-report-extract/frontend
+npm install && npm start     # http://localhost:3000
+```
+
+## 获取 API 凭证
+
+访问 [TextIn 开放平台](https://www.textin.com) 注册并获取 `App ID` 与 `Secret Code`，详见 [API Key 说明](/xparse/api-key)。

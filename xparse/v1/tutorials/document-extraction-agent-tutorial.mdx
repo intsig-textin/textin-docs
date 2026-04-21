@@ -1,0 +1,592 @@
+---
+title: "单据录入 Agent：发票合同订单自动化处理"
+description: "使用 xParse Extract API + LangChain 构建单据提取 Agent，实现发票、合同、订单等单据的自动化信息提取和数据验证"
+---
+
+<Tip>
+  本教程面向单据处理场景，展示如何利用 [xParse Extract API](/api-reference/endpoint/extract-v3) 直接从单据文档中抽取结构化信息，并通过 Agent 进行数据验证。
+</Tip>
+
+## 场景介绍
+
+### 业务痛点
+
+在财务和采购场景中，企业面临以下挑战：
+
+- **单据量大**：需要处理大量发票、合同、订单、收据等单据
+- **信息提取繁琐**：需要从单据中提取关键信息（金额、税号、日期、商品明细等）
+- **数据验证困难**：需要验证数据的完整性和准确性（金额计算、日期合理性等）
+- **格式多样**：单据格式不统一，有PDF、图片、扫描件等
+- **人工成本高**：手动录入和核对效率低，容易出错
+
+### 解决方案
+
+通过构建单据提取Agent，我们可以实现：
+
+- **一步完成解析与抽取**：使用 [xParse Extract API](/api-reference/endpoint/extract-v3)，通过定义 Schema 直接从文档中提取结构化数据，无需先解析再用大模型抽取
+- **Schema 驱动**：为发票、合同、订单分别定义抽取 Schema，精确控制提取字段
+- **数据验证**：自动验证提取的数据（金额校验、日期检查、必填项检查等）
+- **批量处理**：支持批量处理大量单据
+
+## 架构设计
+
+```
+单据文档（PDF/图片/扫描件）
+    ↓
+[xParse Extract API]
+    └─ 解析 + 结构化抽取（一步完成）
+    ↓
+[LangChain Agent]
+    ├─ Tool 1: extract_invoice_info（发票抽取 Schema）
+    ├─ Tool 2: extract_contract_info（合同抽取 Schema）
+    ├─ Tool 3: extract_order_info（订单抽取 Schema）
+    └─ Tool 4: validate_data（数据验证）
+    ↓
+结构化数据（JSON）+ 验证报告
+```
+
+**核心思路**：xParse Extract API 通过 Schema 定义一步完成文档解析与结构化抽取，Agent 负责根据用户意图选择合适的抽取工具和执行验证。
+
+## 环境准备
+
+首先安装必要的依赖：
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install requests langchain langchain-community langchain-core python-dotenv dashscope
+```
+
+创建 `.env` 文件存储配置：
+
+```bash
+# .env
+TEXTIN_APP_ID=your-app-id
+TEXTIN_SECRET_CODE=your-secret-code
+DASHSCOPE_API_KEY=your-dashscope-key
+```
+
+> 提示：`TEXTIN_APP_ID` 与 `TEXTIN_SECRET_CODE` 参考 [API Key](/xparse/api-key)，请登录 [Textin 工作台](https://www.textin.com/console/dashboard/setting) 获取。示例中使用 `通义千问` 的大模型能力，其他模型用法类似。
+
+## 完整代码示例
+
+下面是一个完整的、可以直接运行的示例：
+
+```python expandable
+import os
+import json
+import base64
+import glob
+import re
+from datetime import datetime
+from dotenv import load_dotenv
+import requests
+from langchain_core.tools import Tool
+from langchain.agents import initialize_agent, AgentType
+from langchain_community.chat_models import ChatTongyi
+
+load_dotenv()
+
+# ========== Step 1: Extract API 配置 ==========
+
+DOCS_DIR = "/your/doc/folder"
+EXTRACT_API_URL = "https://api.textin.com/ai/service/v3/entity_extraction"
+
+def extract_from_file(file_path: str, schema: dict, generate_citations: bool = False, stamp: bool = False) -> dict:
+    with open(file_path, "rb") as f:
+        file_base64 = base64.b64encode(f.read()).decode("utf-8")
+    payload = {
+        "file": {"file_base64": file_base64, "file_name": os.path.basename(file_path)},
+        "schema": schema,
+        "extract_options": {"generate_citations": generate_citations, "stamp": stamp}
+    }
+    headers = {
+        "x-ti-app-id": os.getenv("TEXTIN_APP_ID"),
+        "x-ti-secret-code": os.getenv("TEXTIN_SECRET_CODE"),
+        "Content-Type": "application/json"
+    }
+    response = requests.post(EXTRACT_API_URL, json=payload, headers=headers)
+    result = response.json()
+    if result.get("code") != 200:
+        raise Exception(f"Extract API 错误: {result.get('message', '未知错误')}")
+    return result["result"]
+
+# ========== Step 2: 定义抽取 Schema ==========
+
+INVOICE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "发票号码": {"type": ["string", "null"], "description": "发票号码"},
+        "发票代码": {"type": ["string", "null"], "description": "发票代码"},
+        "开票日期": {"type": ["string", "null"], "description": "开票日期"},
+        "销售方名称": {"type": ["string", "null"], "description": "销售方名称"},
+        "销售方税号": {"type": ["string", "null"], "description": "销售方纳税人识别号"},
+        "购买方名称": {"type": ["string", "null"], "description": "购买方名称"},
+        "购买方税号": {"type": ["string", "null"], "description": "购买方纳税人识别号"},
+        "商品明细": {
+            "type": "array", "description": "商品明细列表",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "名称": {"type": ["string", "null"], "description": "商品名称"},
+                    "规格型号": {"type": ["string", "null"], "description": "规格型号"},
+                    "数量": {"type": ["string", "null"], "description": "数量"},
+                    "单价": {"type": ["string", "null"], "description": "单价"},
+                    "金额": {"type": ["string", "null"], "description": "金额"},
+                    "税率": {"type": ["string", "null"], "description": "税率"}
+                },
+                "required": ["名称", "金额"]
+            }
+        },
+        "合计金额": {"type": ["string", "null"], "description": "合计金额"},
+        "税额": {"type": ["string", "null"], "description": "税额"},
+        "价税合计": {"type": ["string", "null"], "description": "价税合计"}
+    },
+    "required": ["发票号码", "开票日期", "商品明细", "价税合计"]
+}
+
+CONTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "合同编号": {"type": ["string", "null"], "description": "合同编号"},
+        "签署日期": {"type": ["string", "null"], "description": "签署日期"},
+        "生效日期": {"type": ["string", "null"], "description": "生效日期"},
+        "到期日期": {"type": ["string", "null"], "description": "到期日期"},
+        "甲方名称": {"type": ["string", "null"], "description": "甲方名称"},
+        "乙方名称": {"type": ["string", "null"], "description": "乙方名称"},
+        "甲方联系方式": {"type": ["string", "null"], "description": "甲方联系方式"},
+        "乙方联系方式": {"type": ["string", "null"], "description": "乙方联系方式"},
+        "合同总价": {"type": ["string", "null"], "description": "合同总价"},
+        "付款方式": {"type": ["string", "null"], "description": "付款方式"},
+        "付款期限": {"type": ["string", "null"], "description": "付款期限"},
+        "违约责任": {"type": ["string", "null"], "description": "违约责任条款"},
+        "争议解决": {"type": ["string", "null"], "description": "争议解决方式"},
+        "合同期限": {"type": ["string", "null"], "description": "合同期限"}
+    },
+    "required": ["合同编号", "签署日期", "甲方名称", "乙方名称", "合同总价"]
+}
+
+ORDER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "订单号": {"type": ["string", "null"], "description": "订单号"},
+        "下单日期": {"type": ["string", "null"], "description": "下单日期"},
+        "交货日期": {"type": ["string", "null"], "description": "交货日期"},
+        "客户名称": {"type": ["string", "null"], "description": "客户名称"},
+        "联系方式": {"type": ["string", "null"], "description": "联系方式"},
+        "地址": {"type": ["string", "null"], "description": "地址"},
+        "商品明细": {
+            "type": "array", "description": "商品明细列表",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "名称": {"type": ["string", "null"], "description": "商品名称"},
+                    "规格": {"type": ["string", "null"], "description": "规格"},
+                    "数量": {"type": ["string", "null"], "description": "数量"},
+                    "单价": {"type": ["string", "null"], "description": "单价"},
+                    "金额": {"type": ["string", "null"], "description": "金额"}
+                },
+                "required": ["名称", "金额"]
+            }
+        },
+        "订单总额": {"type": ["string", "null"], "description": "订单总额"},
+        "运费": {"type": ["string", "null"], "description": "运费"},
+        "优惠金额": {"type": ["string", "null"], "description": "优惠金额"},
+        "实付金额": {"type": ["string", "null"], "description": "实付金额"}
+    },
+    "required": ["订单号", "下单日期", "商品明细", "实付金额"]
+}
+
+VALIDATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "发票号码": {"type": ["string", "null"], "description": "发票号码"},
+        "发票代码": {"type": ["string", "null"], "description": "发票代码"},
+        "开票日期": {"type": ["string", "null"], "description": "开票日期"},
+        "销售方税号": {"type": ["string", "null"], "description": "销售方纳税人识别号"},
+        "购买方税号": {"type": ["string", "null"], "description": "购买方纳税人识别号"},
+        "合计金额": {"type": ["string", "null"], "description": "合计金额"},
+        "税额": {"type": ["string", "null"], "description": "税额"},
+        "价税合计": {"type": ["string", "null"], "description": "价税合计"},
+        "合同编号": {"type": ["string", "null"], "description": "合同编号"},
+        "签署日期": {"type": ["string", "null"], "description": "签署日期"},
+        "合同总价": {"type": ["string", "null"], "description": "合同总价"},
+        "订单号": {"type": ["string", "null"], "description": "订单号"},
+        "下单日期": {"type": ["string", "null"], "description": "下单日期"},
+        "实付金额": {"type": ["string", "null"], "description": "实付金额"},
+        "商品明细": {
+            "type": "array", "description": "商品明细列表",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "名称": {"type": ["string", "null"], "description": "商品名称"},
+                    "金额": {"type": ["string", "null"], "description": "金额"}
+                },
+                "required": ["名称"]
+            }
+        }
+    },
+    "required": []
+}
+
+# ========== Step 3: 初始化大模型 ==========
+
+llm = ChatTongyi(
+    model="qwen-max",
+    top_p=0.8,
+    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+)
+
+# ========== Step 4: 构建 LangChain Tools ==========
+
+def extract_invoice_info(query: str) -> str:
+    """从发票中提取结构化信息"""
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取发票信息 文件:发票.pdf"
+    file_path = os.path.join(DOCS_DIR, filename)
+    if not os.path.exists(file_path):
+        return f"❌ 文件不存在: {file_path}"
+    try:
+        result = extract_from_file(file_path, INVOICE_SCHEMA)
+        return json.dumps(result["extracted_schema"], ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def extract_contract_info(query: str) -> str:
+    """从合同中提取关键信息"""
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取合同信息 文件:合同.pdf"
+    file_path = os.path.join(DOCS_DIR, filename)
+    if not os.path.exists(file_path):
+        return f"❌ 文件不存在: {file_path}"
+    try:
+        result = extract_from_file(file_path, CONTRACT_SCHEMA)
+        return json.dumps(result["extracted_schema"], ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def extract_order_info(query: str) -> str:
+    """从订单中提取信息"""
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：提取订单信息 文件:订单.pdf"
+    file_path = os.path.join(DOCS_DIR, filename)
+    if not os.path.exists(file_path):
+        return f"❌ 文件不存在: {file_path}"
+    try:
+        result = extract_from_file(file_path, ORDER_SCHEMA)
+        return json.dumps(result["extracted_schema"], ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 提取信息时出错：{str(e)}"
+
+def validate_data(query: str) -> str:
+    """验证提取的数据"""
+    filename = query.split("文件:")[-1].strip() if "文件:" in query else None
+    if not filename:
+        return "❌ 请提供文件名，格式：验证数据 文件:发票.pdf"
+    file_path = os.path.join(DOCS_DIR, filename)
+    if not os.path.exists(file_path):
+        return f"❌ 文件不存在: {file_path}"
+
+    try:
+        result = extract_from_file(file_path, VALIDATION_SCHEMA, generate_citations=True)
+        data = result["extracted_schema"]
+        citations = result.get("citations", {})
+
+        checks = []
+
+        if "发票" in filename:
+            required_fields = ["发票号码", "开票日期", "价税合计"]
+        elif "合同" in filename or "contract" in filename:
+            required_fields = ["合同编号", "签署日期", "合同总价"]
+        elif "订单" in filename or "order" in filename:
+            required_fields = ["订单号", "下单日期", "实付金额"]
+        else:
+            required_fields = []
+
+        missing = [f for f in required_fields if not data.get(f)]
+        checks.append({
+            "type": "必填项检查",
+            "status": "fail" if missing else "pass",
+            "message": f"缺少: {', '.join(missing)}" if missing else "所有必填项已填写"
+        })
+
+        amount_status = "pass"
+        amount_message = "金额校验通过"
+        subtotal = data.get("合计金额") or data.get("订单总额")
+        tax = data.get("税额")
+        total = data.get("价税合计") or data.get("实付金额") or data.get("合同总价")
+        if subtotal and tax and total:
+            try:
+                s = float(re.sub(r"[^\d.]", "", subtotal))
+                t = float(re.sub(r"[^\d.]", "", tax))
+                tot = float(re.sub(r"[^\d.]", "", total))
+                if abs(s + t - tot) > 0.01:
+                    amount_status = "warning"
+                    amount_message = f"合计金额({s}) + 税额({t}) = {s+t}，与价税合计({tot})不一致"
+            except ValueError:
+                amount_status = "warning"
+                amount_message = "金额字段包含非数字内容，无法自动校验"
+        else:
+            amount_status = "warning"
+            amount_message = "部分金额字段缺失，无法校验"
+        checks.append({"type": "金额计算验证", "status": amount_status, "message": amount_message})
+
+        date_status = "pass"
+        date_message = "日期格式合理"
+        date_fields = ["开票日期", "签署日期", "下单日期", "交货日期", "生效日期", "到期日期"]
+        for field in date_fields:
+            val = data.get(field)
+            if val:
+                for fmt in ["%Y-%m-%d", "%Y年%m月%d日", "%Y/%m/%d", "%Y.%m.%d"]:
+                    try:
+                        dt = datetime.strptime(val, fmt)
+                        if dt > datetime.now():
+                            date_status = "warning"
+                            date_message = f"{field}({val}) 为未来日期"
+                        break
+                    except ValueError:
+                        continue
+        checks.append({"type": "日期合理性检查", "status": date_status, "message": date_message})
+
+        format_status = "pass"
+        format_message = "格式验证通过"
+        for tax_field in ["销售方税号", "购买方税号"]:
+            val = data.get(tax_field)
+            if val and not re.match(r"^[A-Za-z0-9]{15,20}$", val):
+                format_status = "warning"
+                format_message = f"{tax_field}({val}) 格式可能不正确"
+                break
+        checks.append({"type": "格式验证", "status": format_status, "message": format_message})
+
+        overall = "pass"
+        if any(c["status"] == "fail" for c in checks):
+            overall = "fail"
+        elif any(c["status"] == "warning" for c in checks):
+            overall = "warning"
+
+        return json.dumps({
+            "file": filename,
+            "checks": checks,
+            "overall_status": overall,
+            "extracted_data": data
+        }, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return f"❌ 验证数据时出错：{str(e)}"
+
+def process_documents(query: str) -> str:
+    """批量提取所有单据"""
+    patterns = ["*.pdf", "*.png", "*.jpg", "*.jpeg"]
+    results = {}
+    count = 0
+    for pattern in patterns:
+        for file_path in glob.glob(os.path.join(DOCS_DIR, pattern)):
+            fname = os.path.basename(file_path)
+            try:
+                if "发票" in fname or "invoice" in fname:
+                    result = extract_from_file(file_path, INVOICE_SCHEMA)
+                elif "合同" in fname or "contract" in fname:
+                    result = extract_from_file(file_path, CONTRACT_SCHEMA)
+                elif "订单" in fname or "order" in fname:
+                    result = extract_from_file(file_path, ORDER_SCHEMA)
+                else:
+                    result = extract_from_file(file_path, INVOICE_SCHEMA)
+                results[fname] = result["extracted_schema"]
+                count += 1
+            except Exception as e:
+                results[fname] = f"提取失败: {str(e)}"
+    return json.dumps({"total": count, "results": results}, ensure_ascii=False, indent=2)
+
+tools = [
+    Tool(
+        name="process_documents",
+        description="批量提取所有单据文档的结构化信息。输入：'提取所有文档' 或文件名。",
+        func=process_documents
+    ),
+    Tool(
+        name="extract_invoice_info",
+        description="从发票中提取结构化信息，包括发票号码、开票日期、销售方信息、购买方信息、商品明细、金额信息等。输入格式：提取发票信息 文件:发票.pdf",
+        func=extract_invoice_info
+    ),
+    Tool(
+        name="extract_contract_info",
+        description="从合同中提取关键信息，包括合同编号、签署日期、签约方信息、合同金额、关键条款等。输入格式：提取合同信息 文件:合同.pdf",
+        func=extract_contract_info
+    ),
+    Tool(
+        name="extract_order_info",
+        description="从订单中提取信息，包括订单号、下单日期、客户信息、商品明细、金额信息等。输入格式：提取订单信息 文件:订单.pdf",
+        func=extract_order_info
+    ),
+    Tool(
+        name="validate_data",
+        description="验证提取的数据，包括必填项检查、金额计算验证、日期合理性检查、格式验证等。输入格式：验证数据 文件:发票.pdf",
+        func=validate_data
+    )
+]
+
+# ========== Step 5: 初始化 Agent ==========
+
+agent = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True,
+    agent_kwargs={
+        "prefix": """你是一个专业的单据处理助手。你的任务是帮助用户：
+1. 从发票、合同、订单中提取关键信息
+2. 验证提取的数据完整性和准确性
+3. 检查数据格式和合理性
+
+在回答时，请：
+- 选择合适的工具提取信息
+- 提供结构化的提取结果（JSON格式）
+- 明确标注验证结果（通过/失败/警告）
+- 如果发现问题，说明具体的问题和建议
+- 使用工具获取准确的信息，不要猜测
+"""
+    }
+)
+
+# ========== Step 6: 使用示例 ==========
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("示例 1: 提取发票信息")
+    print("=" * 60)
+    response = agent.invoke({
+        "input": "从发票中提取发票号码、开票日期、金额和商品明细 文件:invoice.pdf"
+    })
+    print(response["output"])
+    print()
+
+    print("=" * 60)
+    print("示例 2: 提取合同信息")
+    print("=" * 60)
+    response = agent.invoke({
+        "input": "从合同中提取合同编号、签署日期、签约方和合同金额 文件:contract.pdf"
+    })
+    print(response["output"])
+    print()
+
+    print("=" * 60)
+    print("示例 3: 提取订单信息")
+    print("=" * 60)
+    response = agent.invoke({
+        "input": "从订单中提取订单号、下单日期、客户信息和商品明细 文件:order.pdf"
+    })
+    print(response["output"])
+    print()
+
+    print("=" * 60)
+    print("示例 4: 数据验证")
+    print("=" * 60)
+    response = agent.invoke({
+        "input": "验证发票数据：检查必填项、金额计算、日期合理性、税号格式 文件:invoice.pdf"
+    })
+    print(response["output"])
+```
+
+## 代码说明
+
+### Step 1: Extract API 配置
+
+`extract_from_file` 是核心辅助函数，负责：
+- 读取文件并编码为 Base64
+- 构建请求体（文件 + Schema + 选项）
+- 调用 Extract API，一步完成文档解析与结构化抽取
+- 通过 `x-ti-app-id` 和 `x-ti-secret-code` 请求头进行认证
+
+### Step 2: Schema 定义
+
+为每种单据类型定义抽取 Schema：
+- **INVOICE_SCHEMA**：发票信息（发票号码、销售方/购买方、商品明细、金额等）
+- **CONTRACT_SCHEMA**：合同信息（合同编号、签约方、金额、关键条款等）
+- **ORDER_SCHEMA**：订单信息（订单号、客户信息、商品明细、金额等）
+- **VALIDATION_SCHEMA**：验证用的通用 Schema，覆盖各类单据的关键字段
+
+Schema 遵循 JSON Schema 规范，通过 `type`、`description`、`required` 精确定义提取字段。
+
+### Step 3: 信息提取 Tools
+
+每个 Tool 的工作流程：
+1. 从查询中提取文件名
+2. 调用 `extract_from_file` 传入对应的 Schema
+3. Extract API 直接返回结构化 JSON 结果
+
+**关键点**：不再需要先解析文档再用大模型抽取，Extract API 一步完成。
+
+### Step 4: Agent 配置
+
+Agent 会自动：
+- 根据用户意图选择合适的 Tool
+- 调用 Extract API 提取信息
+- 组织最终的回答
+
+## 使用示例
+
+### 示例 1：提取发票信息
+
+```python
+response = agent.invoke({
+    "input": "从发票中提取发票号码、开票日期、销售方税号、购买方税号、商品明细和金额 文件:invoice.pdf"
+})
+print(response["output"])
+```
+
+### 示例 2：提取合同信息
+
+```python
+response = agent.invoke({
+    "input": "从合同中提取合同编号、签署日期、甲方、乙方、合同金额和违约责任条款 文件:contract.pdf"
+})
+print(response["output"])
+```
+
+### 示例 3：提取订单信息
+
+```python
+response = agent.invoke({
+    "input": "从订单中提取订单号、下单日期、客户信息和商品明细 文件:order.pdf"
+})
+print(response["output"])
+```
+
+### 示例 4：数据验证
+
+```python
+response = agent.invoke({
+    "input": "验证提取的发票数据：检查必填项、金额计算、日期合理性、税号格式 文件:invoice.pdf"
+})
+print(response["output"])
+```
+
+## 最佳实践
+
+1. **Schema 设计**：根据实际业务需求定义 Schema 字段，使用 `required` 标记必要字段，使用 `description` 提供清晰的字段说明
+2. **文档质量**：对于扫描件和图片，确保分辨率足够，Extract API 内置高精度 OCR 引擎
+3. **坐标引用**：开启 `generate_citations` 可获取字段在文档中的位置坐标，便于人工核对
+4. **数据验证**：提取后立即验证，确保数据完整性和准确性
+5. **批量处理**：使用 `process_documents` 批量提取，提高效率
+6. **错误处理**：对于提取失败的单据，记录错误信息，便于人工处理
+
+## 常见问题
+
+**Q: 如何处理模糊的扫描件？**  
+A: 1) 使用高质量的扫描件；2) 预处理图片（去噪、增强对比度）；3) Extract API 内置了高精度 OCR 引擎，可以处理大多数扫描件。
+
+**Q: 如何自定义提取字段？**  
+A: 修改对应的 Schema 定义即可。Schema 遵循 JSON Schema 规范，支持 `string`、`number`、`array`、`object` 等类型，通过 `description` 描述字段含义。
+
+**Q: 如何处理多页单据？**  
+A: Extract API 会自动处理多页文档，从所有页面中提取信息。
+
+**Q: 可以使用其他 LLM 吗？**  
+A: 可以。Agent 编排部分使用 LangChain，支持多种 LLM，只需替换 `ChatTongyi`（通义千问）为对应的类，如 `ChatOpenAI`（OpenAI）、`ChatZhipuAI`（智谱AI）等。信息提取由 Extract API 完成，不依赖特定 LLM。
+
+## 相关文档
+
+- [快速启动](/xparse/v1/quickstart) - 了解 xParse 基本使用方法
+- [文档解析](/api-reference/endpoint/xparse/v1/parse-sync) - 了解文档解析 API
+- [Agent教程](/xparse/v1/tutorials/agent-tutorial) - 了解通用 Agent 构建方法
