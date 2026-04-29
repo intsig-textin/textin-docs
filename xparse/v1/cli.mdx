@@ -77,13 +77,20 @@ xparse-cli parse report.pdf --api paid
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--view` | `markdown` | 输出视图：`markdown`、`json` |
 | `--api` | _(auto)_ | API 模式：`free`、`paid` |
-| `--page-range` | | 页码范围：`"1-5"` 或 `"1-2,5-10"` |
+| `--include-char-details` | `false` | 返回字符级详细信息 |
+| `--include-hierarchy` | `true` | 返回元素间的层级与关联字段 |
+| `--include-image-data` | `true` | 返回图片数据（URL、MIME 类型、Base64） |
+| `--include-inline-objects` | `true` | 返回细粒度的行内对象（公式、手写、复选框、内嵌图片） |
+| `--include-pages` | `true` | 返回页面元信息列表 |
+| `--include-table-structure` | `true` | 返回表格的详细结构化信息 |
+| `--include-title-tree` | `true` | 返回标题树（目录） |
+| `--list` | | 从文件读取输入列表（每行一个路径），需配合 `--output` |
+| `--output` | _(stdout)_ | 输出文件路径或目录；省略则输出到终端 |
+| `--page-range` | | 页码范围，例如 `"1-5"` 或 `"1-2,5-10"` |
 | `--password` | | 加密文档密码 |
-| `--include-char-details` | `false` | 返回字符级坐标和置信度 |
-| `--list` | | 从文件读取输入列表（需配合 `--output`） |
-| `--output` | _(stdout)_ | 输出文件路径或目录（目录须已存在） |
+| `--table-view` | `html` | 表格在 Markdown 中的表达格式：`html`、`markdown` |
+| `--view` | `markdown` | 输出视图：`markdown`、`json` |
 
 **全局参数（所有命令均支持）：**
 

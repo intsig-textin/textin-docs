@@ -89,7 +89,7 @@ from dotenv import load_dotenv
 from xparse_client import XParseClient
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_core.tools import Tool
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_core.messages import HumanMessage
 from langchain_community.chat_models import ChatTongyi
 from langchain_milvus import Milvus
@@ -230,7 +230,7 @@ MEDICAL_SCHEMA = {
                     "剂量": {"type": ["string", "null"], "description": "剂量"},
                     "用法": {"type": ["string", "null"], "description": "用法用量"}
                 },
-                "required": ["药物名称"]
+                "required": ["药物名称", "剂量", "用法"]
             }
         },
         "检查结果": {
@@ -242,7 +242,7 @@ MEDICAL_SCHEMA = {
                     "检查项目": {"type": ["string", "null"], "description": "检查项目名称"},
                     "结果": {"type": ["string", "null"], "description": "检查结果"}
                 },
-                "required": ["检查项目"]
+                "required": ["检查项目", "结果"]
             }
         }
     },

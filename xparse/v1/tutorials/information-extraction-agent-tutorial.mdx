@@ -171,7 +171,7 @@ INVOICE_SCHEMA = {
                     "税率": {"type": ["string", "null"], "description": "税率"},
                     "税额": {"type": ["string", "null"], "description": "税额"}
                 },
-                "required": ["名称", "金额"]
+                "required": ["名称", "规格型号","单位","数量","单价","金额","税率","税额"]
             }
         },
         "金额信息": {
@@ -192,7 +192,7 @@ INVOICE_SCHEMA = {
             }
         }
     },
-    "required": ["发票基本信息", "销售方", "购买方", "商品明细", "金额信息"]
+    "required": ["销售方", "购买方", "商品明细", "金额信息", "其他信息","发票基本信息"]
 }
 
 MEDICAL_BILL_SCHEMA = {
@@ -236,7 +236,7 @@ MEDICAL_BILL_SCHEMA = {
                     "金额": {"type": ["string", "null"], "description": "金额"},
                     "医保类型": {"type": ["string", "null"], "description": "甲类/乙类/丙类"}
                 },
-                "required": ["项目名称", "金额"]
+                "required": ["项目名称", "金额","数量","单价","医保类型"]
             }
         },
         "费用汇总": {
@@ -256,72 +256,238 @@ MEDICAL_BILL_SCHEMA = {
             }
         }
     },
-    "required": ["患者信息", "医疗机构信息", "费用明细", "费用汇总"]
+    "required": ["就诊信息", "费用明细", "费用汇总", "其他信息","医疗机构信息","患者信息"]
 }
 
 CONTRACT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "合同基本信息": {
-            "type": "object",
-            "properties": {
-                "合同编号": {"type": ["string", "null"], "description": "合同编号"},
-                "合同名称": {"type": ["string", "null"], "description": "合同名称"},
-                "签订日期": {"type": ["string", "null"], "description": "签订日期"},
-                "生效日期": {"type": ["string", "null"], "description": "生效日期"},
-                "到期日期": {"type": ["string", "null"], "description": "到期日期"}
-            }
+  "type": "object",
+  "properties": {
+    "合同基本信息": {
+      "type": "object",
+      "description": "",
+      "required": ["合同编号","合同名称","签订日期","生效日期","到期日期"],
+      "properties": {
+        "合同编号": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "合同双方": {
-            "type": "object",
-            "properties": {
-                "甲方": {
-                    "type": "object",
-                    "properties": {
-                        "名称": {"type": ["string", "null"], "description": "甲方名称"},
-                        "地址": {"type": ["string", "null"], "description": "甲方地址"},
-                        "法定代表人": {"type": ["string", "null"], "description": "法定代表人"},
-                        "联系方式": {"type": ["string", "null"], "description": "联系方式"}
-                    }
-                },
-                "乙方": {
-                    "type": "object",
-                    "properties": {
-                        "名称": {"type": ["string", "null"], "description": "乙方名称"},
-                        "地址": {"type": ["string", "null"], "description": "乙方地址"},
-                        "法定代表人": {"type": ["string", "null"], "description": "法定代表人"},
-                        "联系方式": {"type": ["string", "null"], "description": "联系方式"}
-                    }
-                }
-            }
+        "合同名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "合同标的": {
-            "type": "object",
-            "properties": {
-                "标的物": {"type": ["string", "null"], "description": "标的物或服务内容"},
-                "数量": {"type": ["string", "null"], "description": "数量"},
-                "金额": {"type": ["string", "null"], "description": "金额"}
-            }
+        "签订日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "关键条款": {
-            "type": "object",
-            "properties": {
-                "付款方式": {"type": ["string", "null"], "description": "付款方式"},
-                "交付方式": {"type": ["string", "null"], "description": "交付方式"},
-                "违约责任": {"type": ["string", "null"], "description": "违约责任"},
-                "争议解决": {"type": ["string", "null"], "description": "争议解决方式"}
-            }
+        "生效日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "金额信息": {
-            "type": "object",
-            "properties": {
-                "合同总金额": {"type": ["string", "null"], "description": "合同总金额"},
-                "付款计划": {"type": ["string", "null"], "description": "付款计划"},
-                "保证金": {"type": ["string", "null"], "description": "保证金"}
-            }
+        "到期日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         }
+      }
     },
-    "required": ["合同基本信息", "合同双方", "合同标的", "关键条款", "金额信息"]
+    "合同双方": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "甲方-名称",
+        "甲方-地址",
+        "甲方-法定代表人",
+        "甲方-联系方式",
+        "乙方-名称",
+        "乙方-地址",
+        "乙方-法定代表人",
+        "乙方-联系方式"
+      ],
+      "properties": {
+        "甲方-名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-地址": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-法定代表人": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-联系方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-地址": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-法定代表人": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-联系方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "合同标的": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "标的物",
+        "数量",
+        "金额"
+      ],
+      "properties": {
+        "标的物": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "数量": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "金额": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "关键条款": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "付款方式",
+        "交付方式",
+        "违约责任",
+        "争议解决"
+      ],
+      "properties": {
+        "付款方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "交付方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "违约责任": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "争议解决": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "金额信息": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "合同总金额",
+        "付款计划",
+        "保证金"
+      ],
+      "properties": {
+        "合同总金额": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "付款计划": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "保证金": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    }
+  },
+  "required": [
+    "合同基本信息",
+    "合同双方",
+    "合同标的",
+    "关键条款",
+    "金额信息"
+  ]
 }
 
 RESUME_SCHEMA = {
@@ -350,7 +516,7 @@ RESUME_SCHEMA = {
                     "入学时间": {"type": ["string", "null"], "description": "入学时间"},
                     "毕业时间": {"type": ["string", "null"], "description": "毕业时间"}
                 },
-                "required": ["学校"]
+                "required": ["学校","专业","学历","入学时间","毕业时间"]
             }
         },
         "工作经历": {
@@ -365,7 +531,7 @@ RESUME_SCHEMA = {
                     "离职时间": {"type": ["string", "null"], "description": "离职时间"},
                     "工作内容": {"type": ["string", "null"], "description": "主要工作内容"}
                 },
-                "required": ["公司"]
+                "required": ["公司","职位","入职时间","离职时间","工作内容"]
             }
         },
         "技能": {
@@ -377,7 +543,7 @@ RESUME_SCHEMA = {
             }
         }
     },
-    "required": ["个人信息"]
+    "required": ["技能","工作经历","教育经历","个人信息"]
 }
 
 PRODUCT_SPECS_SCHEMA = {
@@ -395,7 +561,7 @@ PRODUCT_SPECS_SCHEMA = {
                     "参数值": {"type": ["string", "null"], "description": "参数值"},
                     "单位": {"type": ["string", "null"], "description": "单位"}
                 },
-                "required": ["参数名", "参数值"]
+                "required": ["参数名", "参数值","单位"]
             }
         },
         "功能特性": {
@@ -411,7 +577,7 @@ PRODUCT_SPECS_SCHEMA = {
             }
         }
     },
-    "required": ["产品名称"]
+    "required": ["产品名称","型号","技术参数","功能特性","价格信息"]
 }
 
 API_INFO_SCHEMA = {
@@ -426,22 +592,10 @@ API_INFO_SCHEMA = {
                     "端点": {"type": ["string", "null"], "description": "API 端点 URL"},
                     "请求方法": {"type": ["string", "null"], "description": "GET/POST/PUT/DELETE"},
                     "描述": {"type": ["string", "null"], "description": "接口描述"},
-                    "请求参数": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "参数名": {"type": ["string", "null"], "description": "参数名"},
-                                "类型": {"type": ["string", "null"], "description": "参数类型"},
-                                "必填": {"type": ["string", "null"], "description": "是否必填"},
-                                "说明": {"type": ["string", "null"], "description": "参数说明"}
-                            }
-                        }
-                    },
                     "响应格式": {"type": ["string", "null"], "description": "响应数据格式描述"},
                     "认证方式": {"type": ["string", "null"], "description": "认证方式"}
                 },
-                "required": ["端点", "请求方法"]
+                "required": ["端点", "请求方法","描述","响应格式","认证方式"]
             }
         }
     },
@@ -695,7 +849,7 @@ tools = [
 ## Step 3：配置 LangChain Agent
 
 ```python
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_community.chat_models import ChatTongyi
 
 llm = ChatTongyi(
@@ -744,7 +898,7 @@ import requests
 import pandas as pd
 from dotenv import load_dotenv
 from langchain_core.tools import Tool
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_community.chat_models import ChatTongyi
 
 load_dotenv()
@@ -795,7 +949,7 @@ INVOICE_SCHEMA = {
                     "税率": {"type": ["string", "null"], "description": "税率"},
                     "税额": {"type": ["string", "null"], "description": "税额"}
                 },
-                "required": ["名称", "金额"]
+                "required": ["名称", "规格型号","单位","数量","单价","金额","税率","税额"]
             }
         },
         "金额信息": {
@@ -816,7 +970,7 @@ INVOICE_SCHEMA = {
             }
         }
     },
-    "required": ["发票基本信息", "销售方", "购买方", "商品明细", "金额信息"]
+    "required": ["销售方", "购买方", "商品明细", "金额信息", "其他信息","发票基本信息"]
 }
 
 MEDICAL_BILL_SCHEMA = {
@@ -860,7 +1014,7 @@ MEDICAL_BILL_SCHEMA = {
                     "金额": {"type": ["string", "null"], "description": "金额"},
                     "医保类型": {"type": ["string", "null"], "description": "甲类/乙类/丙类"}
                 },
-                "required": ["项目名称", "金额"]
+                "required": ["项目名称", "金额","数量","单价","医保类型"]
             }
         },
         "费用汇总": {
@@ -880,72 +1034,238 @@ MEDICAL_BILL_SCHEMA = {
             }
         }
     },
-    "required": ["患者信息", "医疗机构信息", "费用明细", "费用汇总"]
+    "required": ["就诊信息", "费用明细", "费用汇总", "其他信息","医疗机构信息","患者信息"]
 }
 
 CONTRACT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "合同基本信息": {
-            "type": "object",
-            "properties": {
-                "合同编号": {"type": ["string", "null"], "description": "合同编号"},
-                "合同名称": {"type": ["string", "null"], "description": "合同名称"},
-                "签订日期": {"type": ["string", "null"], "description": "签订日期"},
-                "生效日期": {"type": ["string", "null"], "description": "生效日期"},
-                "到期日期": {"type": ["string", "null"], "description": "到期日期"}
-            }
+  "type": "object",
+  "properties": {
+    "合同基本信息": {
+      "type": "object",
+      "description": "",
+      "required": ["合同编号","合同名称","签订日期","生效日期","到期日期"],
+      "properties": {
+        "合同编号": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "合同双方": {
-            "type": "object",
-            "properties": {
-                "甲方": {
-                    "type": "object",
-                    "properties": {
-                        "名称": {"type": ["string", "null"], "description": "甲方名称"},
-                        "地址": {"type": ["string", "null"], "description": "甲方地址"},
-                        "法定代表人": {"type": ["string", "null"], "description": "法定代表人"},
-                        "联系方式": {"type": ["string", "null"], "description": "联系方式"}
-                    }
-                },
-                "乙方": {
-                    "type": "object",
-                    "properties": {
-                        "名称": {"type": ["string", "null"], "description": "乙方名称"},
-                        "地址": {"type": ["string", "null"], "description": "乙方地址"},
-                        "法定代表人": {"type": ["string", "null"], "description": "法定代表人"},
-                        "联系方式": {"type": ["string", "null"], "description": "联系方式"}
-                    }
-                }
-            }
+        "合同名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "合同标的": {
-            "type": "object",
-            "properties": {
-                "标的物": {"type": ["string", "null"], "description": "标的物或服务内容"},
-                "数量": {"type": ["string", "null"], "description": "数量"},
-                "金额": {"type": ["string", "null"], "description": "金额"}
-            }
+        "签订日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "关键条款": {
-            "type": "object",
-            "properties": {
-                "付款方式": {"type": ["string", "null"], "description": "付款方式"},
-                "交付方式": {"type": ["string", "null"], "description": "交付方式"},
-                "违约责任": {"type": ["string", "null"], "description": "违约责任"},
-                "争议解决": {"type": ["string", "null"], "description": "争议解决方式"}
-            }
+        "生效日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         },
-        "金额信息": {
-            "type": "object",
-            "properties": {
-                "合同总金额": {"type": ["string", "null"], "description": "合同总金额"},
-                "付款计划": {"type": ["string", "null"], "description": "付款计划"},
-                "保证金": {"type": ["string", "null"], "description": "保证金"}
-            }
+        "到期日期": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
         }
+      }
     },
-    "required": ["合同基本信息", "合同双方", "合同标的", "关键条款", "金额信息"]
+    "合同双方": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "甲方-名称",
+        "甲方-地址",
+        "甲方-法定代表人",
+        "甲方-联系方式",
+        "乙方-名称",
+        "乙方-地址",
+        "乙方-法定代表人",
+        "乙方-联系方式"
+      ],
+      "properties": {
+        "甲方-名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-地址": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-法定代表人": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "甲方-联系方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-名称": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-地址": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-法定代表人": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "乙方-联系方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "合同标的": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "标的物",
+        "数量",
+        "金额"
+      ],
+      "properties": {
+        "标的物": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "数量": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "金额": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "关键条款": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "付款方式",
+        "交付方式",
+        "违约责任",
+        "争议解决"
+      ],
+      "properties": {
+        "付款方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "交付方式": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "违约责任": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "争议解决": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    },
+    "金额信息": {
+      "type": "object",
+      "description": "",
+      "required": [
+        "合同总金额",
+        "付款计划",
+        "保证金"
+      ],
+      "properties": {
+        "合同总金额": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "付款计划": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "保证金": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      }
+    }
+  },
+  "required": [
+    "合同基本信息",
+    "合同双方",
+    "合同标的",
+    "关键条款",
+    "金额信息"
+  ]
 }
 
 RESUME_SCHEMA = {
@@ -970,11 +1290,11 @@ RESUME_SCHEMA = {
                 "properties": {
                     "学校": {"type": ["string", "null"], "description": "学校名称"},
                     "专业": {"type": ["string", "null"], "description": "专业"},
-                    "学历": {"type": ["string", "null"], "description": "学历"},
+                    "学历": {"type": ["string", "null"], "description": "学历（本科/硕士/博士等）"},
                     "入学时间": {"type": ["string", "null"], "description": "入学时间"},
                     "毕业时间": {"type": ["string", "null"], "description": "毕业时间"}
                 },
-                "required": ["学校"]
+                "required": ["学校","专业","学历","入学时间","毕业时间"]
             }
         },
         "工作经历": {
@@ -989,7 +1309,7 @@ RESUME_SCHEMA = {
                     "离职时间": {"type": ["string", "null"], "description": "离职时间"},
                     "工作内容": {"type": ["string", "null"], "description": "主要工作内容"}
                 },
-                "required": ["公司"]
+                "required": ["公司","职位","入职时间","离职时间","工作内容"]
             }
         },
         "技能": {
@@ -1001,7 +1321,7 @@ RESUME_SCHEMA = {
             }
         }
     },
-    "required": ["个人信息"]
+    "required": ["技能","工作经历","教育经历","个人信息"]
 }
 
 PRODUCT_SPECS_SCHEMA = {
@@ -1019,7 +1339,7 @@ PRODUCT_SPECS_SCHEMA = {
                     "参数值": {"type": ["string", "null"], "description": "参数值"},
                     "单位": {"type": ["string", "null"], "description": "单位"}
                 },
-                "required": ["参数名", "参数值"]
+                "required": ["参数名", "参数值","单位"]
             }
         },
         "功能特性": {
@@ -1035,7 +1355,7 @@ PRODUCT_SPECS_SCHEMA = {
             }
         }
     },
-    "required": ["产品名称"]
+    "required": ["产品名称","型号","技术参数","功能特性","价格信息"]
 }
 
 API_INFO_SCHEMA = {
@@ -1050,22 +1370,10 @@ API_INFO_SCHEMA = {
                     "端点": {"type": ["string", "null"], "description": "API 端点 URL"},
                     "请求方法": {"type": ["string", "null"], "description": "GET/POST/PUT/DELETE"},
                     "描述": {"type": ["string", "null"], "description": "接口描述"},
-                    "请求参数": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "参数名": {"type": ["string", "null"], "description": "参数名"},
-                                "类型": {"type": ["string", "null"], "description": "参数类型"},
-                                "必填": {"type": ["string", "null"], "description": "是否必填"},
-                                "说明": {"type": ["string", "null"], "description": "参数说明"}
-                            }
-                        }
-                    },
                     "响应格式": {"type": ["string", "null"], "description": "响应数据格式描述"},
                     "认证方式": {"type": ["string", "null"], "description": "认证方式"}
                 },
-                "required": ["端点", "请求方法"]
+                "required": ["端点", "请求方法","描述","响应格式","认证方式"]
             }
         }
     },

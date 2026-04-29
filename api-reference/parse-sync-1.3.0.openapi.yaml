@@ -54,11 +54,14 @@ paths:
                       pages: true
                       title_tree: true
                       table_view: "html"
+                      remove_watermark: true
+                      crop_dewarp: true
                     scope:
                       page_range: "1-2"
                     config:
                       force_engine: "textin"
                       engine_params:
+                        parse_mode: "scan"
                         formula_level: 0
                         image_output_type: "url"
             encoding:
@@ -371,7 +374,15 @@ components:
           type: string
           enum: [markdown, html]
           default: html
-          description: 表格在 markdown 中的表达格式
+          description: 表格在 markdown 中的表达格式。
+        remove_watermark:
+          type: boolean
+          default: false
+          description: 是否对文档进行去水印预处理。
+        crop_dewarp:
+          type: boolean
+          default: false
+          description: 是否对文档进行切边矫正预处理。
 
     Scope:
       type: object

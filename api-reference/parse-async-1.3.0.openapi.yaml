@@ -58,11 +58,14 @@ paths:
                       pages: true
                       title_tree: true
                       table_view: "html"
+                      remove_watermark: true
+                      crop_dewarp: true
                     scope:
                       page_range: "1-2"
                     config:
                       force_engine: "textin"
                       engine_params:
+                        parse_mode: "scan"
                         formula_level: 0
                         image_output_type: "url"
                 webhook:
@@ -162,7 +165,7 @@ paths:
                       job_id: "c020a1f03c994091a94d6763cdbe0684"
                       file_id: "00c685bad97544609d3607885d76bdc4"
                       status: "completed"
-                      result_url: "https://api.textin.com/api/xparse/parse/async/result/xxx"
+                      result_url: "https://web-api.textin.com/file/xparse_result/xxx"
                 failed:
                   summary: 处理失败
                   value:
@@ -252,7 +255,15 @@ components:
           type: string
           enum: [markdown, html]
           default: html
-          description: 表格在 markdown 中的表达格式
+          description: 表格在 markdown 中的表达格式。
+        remove_watermark:
+          type: boolean
+          default: false
+          description: 是否对文档进行去水印预处理。
+        crop_dewarp:
+          type: boolean
+          default: false
+          description: 是否对文档进行切边矫正预处理。
 
     Scope:
       type: object
@@ -362,7 +373,7 @@ components:
             结果下载URL（仅在status为completed时返回）
             
             通过该URL可以下载解析结果，结果格式与同步API一致。
-          example: "https://api.textin.com/api/v1/xparse/parse/async/result/xxx"
+          example: "https://web-api.textin.com/file/xparse_result/xxx"
         message:
           type: string
           description: 错误信息（仅在status为failed时返回）

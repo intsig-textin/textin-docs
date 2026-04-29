@@ -59,7 +59,7 @@ LangChain Agent
 python -m venv .venv && source .venv/bin/activate
 pip install xparse-client langchain langchain-core langchain-text-splitters \
             langchain_milvus langchain-community \
-            pymilvus python-dotenv requests
+            pymilvus python-dotenv requests dashscope milvus_lite
 export TEXTIN_APP_ID=your-app-id # 在 TextIn 官网注册获取
 export TEXTIN_SECRET_CODE=your-secret-code # 在 TextIn 官网注册获取
 export DASHSCOPE_API_KEY=your-dashscope-api-key # 本教程使用通义千问大模型，也可以替换成其他大模型
@@ -138,6 +138,7 @@ import re
 import json
 import os
 import glob
+import time
 
 EXTRACT_API_URL = "https://api.textin.com/ai/service/v3/entity_extraction"
 
@@ -153,7 +154,7 @@ FINANCIAL_SCHEMA = {
                     "金额": {"type": ["string", "null"], "description": "金额数值"},
                     "说明": {"type": ["string", "null"], "description": "金额对应的描述或用途"}
                 },
-                "required": ["金额"]
+                "required": ["金额","说明"]
             }
         },
         "日期列表": {
@@ -165,7 +166,7 @@ FINANCIAL_SCHEMA = {
                     "日期": {"type": ["string", "null"], "description": "日期"},
                     "说明": {"type": ["string", "null"], "description": "日期对应的描述"}
                 },
-                "required": ["日期"]
+                "required": ["日期","说明"]
             }
         },
         "合同信息": {
@@ -188,7 +189,7 @@ FINANCIAL_SCHEMA = {
             }
         }
     },
-    "required": ["金额列表", "日期列表"]
+    "required": ["金额列表", "日期列表", "合同信息", "发票信息"]
 }
 
 def extract_from_file(file_path: str, schema: dict, generate_citations: bool = False) -> dict:
@@ -247,6 +248,7 @@ def extract_financial_data(query: str) -> str:
                         "file": os.path.basename(file_path),
                         "data": result["extracted_schema"]
                     })
+                    time.sleep(0.5)  # 每次请求间隔 500ms，避免触发 API 速率限制
                 except Exception as e:
                     results.append({"file": os.path.basename(file_path), "error": str(e)})
 
@@ -439,7 +441,7 @@ tools = [
 ## Step 3：配置 LangChain Agent
 
 ```python
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_community.chat_models import ChatTongyi
 import os
 
@@ -471,13 +473,14 @@ import re
 import json
 import glob
 import base64
+import time
 from collections import defaultdict
 from dotenv import load_dotenv
 import requests
 from xparse_client import XParseClient
 from langchain_core.tools import Tool
 from langchain_core.documents import Document
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_community.chat_models import ChatTongyi
 from langchain_milvus import Milvus
 from langchain_community.embeddings import DashScopeEmbeddings
@@ -499,7 +502,7 @@ FINANCIAL_SCHEMA = {
                     "金额": {"type": ["string", "null"], "description": "金额数值"},
                     "说明": {"type": ["string", "null"], "description": "金额对应的描述或用途"}
                 },
-                "required": ["金额"]
+                "required": ["金额", "说明"]
             }
         },
         "日期列表": {
@@ -511,7 +514,7 @@ FINANCIAL_SCHEMA = {
                     "日期": {"type": ["string", "null"], "description": "日期"},
                     "说明": {"type": ["string", "null"], "description": "日期对应的描述"}
                 },
-                "required": ["日期"]
+                "required": ["日期", "说明"]
             }
         },
         "合同信息": {
@@ -534,7 +537,7 @@ FINANCIAL_SCHEMA = {
             }
         }
     },
-    "required": ["金额列表", "日期列表"]
+    "required": ["金额列表", "日期列表", "合同信息", "发票信息"]
 }
 
 class AuditAgent:
@@ -644,6 +647,7 @@ class AuditAgent:
                             "file": os.path.basename(file_path),
                             "data": result["extracted_schema"]
                         })
+                        time.sleep(0.5)  # 每次请求间隔 500ms，避免触发 API 速率限制
                     except Exception as e:
                         results.append({"file": os.path.basename(file_path), "error": str(e)})
 

@@ -81,7 +81,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import requests
 from langchain_core.tools import Tool
-from langchain.agents import initialize_agent, AgentType
+from langchain_classic.agents import AgentType, initialize_agent
 from langchain_community.chat_models import ChatTongyi
 
 load_dotenv()
@@ -134,14 +134,14 @@ INVOICE_SCHEMA = {
                     "金额": {"type": ["string", "null"], "description": "金额"},
                     "税率": {"type": ["string", "null"], "description": "税率"}
                 },
-                "required": ["名称", "金额"]
+                "required": ["名称", "金额","规格型号","数量","单价","税率"]
             }
         },
         "合计金额": {"type": ["string", "null"], "description": "合计金额"},
         "税额": {"type": ["string", "null"], "description": "税额"},
         "价税合计": {"type": ["string", "null"], "description": "价税合计"}
     },
-    "required": ["发票号码", "开票日期", "商品明细", "价税合计"]
+    "required": ["发票号码", "合计金额","开票日期", "商品明细", "价税合计","发票代码","销售方名称","销售方税号","购买方名称","购买方税号","税额"]
 }
 
 CONTRACT_SCHEMA = {
@@ -162,7 +162,7 @@ CONTRACT_SCHEMA = {
         "争议解决": {"type": ["string", "null"], "description": "争议解决方式"},
         "合同期限": {"type": ["string", "null"], "description": "合同期限"}
     },
-    "required": ["合同编号", "签署日期", "甲方名称", "乙方名称", "合同总价"]
+    "required": ["合同编号","违约责任", "合同期限","争议解决","付款期限","付款方式","签署日期", "甲方名称", "乙方名称", "合同总价","生效日期","到期日期","甲方联系方式","乙方联系方式"]
 }
 
 ORDER_SCHEMA = {
@@ -185,7 +185,7 @@ ORDER_SCHEMA = {
                     "单价": {"type": ["string", "null"], "description": "单价"},
                     "金额": {"type": ["string", "null"], "description": "金额"}
                 },
-                "required": ["名称", "金额"]
+                "required": ["名称", "金额","规格","数量","单价"]
             }
         },
         "订单总额": {"type": ["string", "null"], "description": "订单总额"},
@@ -193,7 +193,7 @@ ORDER_SCHEMA = {
         "优惠金额": {"type": ["string", "null"], "description": "优惠金额"},
         "实付金额": {"type": ["string", "null"], "description": "实付金额"}
     },
-    "required": ["订单号", "下单日期", "商品明细", "实付金额"]
+    "required": ["订单号", "优惠金额","订单总额","运费","下单日期", "商品明细", "实付金额","交货日期","客户名称","联系方式","地址"]
 }
 
 VALIDATION_SCHEMA = {
@@ -221,11 +221,11 @@ VALIDATION_SCHEMA = {
                     "名称": {"type": ["string", "null"], "description": "商品名称"},
                     "金额": {"type": ["string", "null"], "description": "金额"}
                 },
-                "required": ["名称"]
+                "required": ["名称","金额"]
             }
         }
     },
-    "required": []
+    "required": ["发票号码","实付金额","商品明细","下单日期","订单号","合同总价","签署日期","发票代码","开票日期","销售方税号","购买方税号","合计金额","税额","价税合计","合同编号"]
 }
 
 # ========== Step 3: 初始化大模型 ==========
