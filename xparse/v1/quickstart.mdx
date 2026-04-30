@@ -18,13 +18,23 @@ description: "5 分钟内完成第一次文档解析，使用 Python SDK 或 RES
   <Card title="标准输入输出协议" icon="file-code">
     统一的请求配置（Config）和响应结构（Schema），兼容多种解析引擎，便于集成和迁移。
   </Card>
-  <Card title="引擎可替换（即将到来）" icon="arrows-rotate">
-    支持多种解析引擎（TextIn、MinerU、PaddleOCR），可根据场景选择最优引擎，或对比不同引擎效果。
+  <Card title="引擎可替换" icon="arrows-rotate">
+    支持多种解析引擎（TextIn、MinerU、PaddleOCR 和 GUI），可根据场景选择最优引擎，或对比不同引擎效果。
   </Card>
   <Card title="异步 API 支持" icon="clock">
     新增异步解析接口，支持大文件和批量处理场景，避免 HTTP 超时。支持 Webhook 回调，无需轮询。
   </Card>
 </CardGroup>
+
+<Tip>
+  **新增 GUI 识别引擎，精准解析界面元素**
+
+  专门用于识别桌面、移动应用和网页截图，返回 UI 元素类型（按钮、输入框、复选框等）及其位置、文本、交互性等信息。解析效果如下：
+
+  ![GUI 引擎解析效果示例](https://web-api.textin.com/open/image/download?filename=586d64e8cb084f3990640649fad7f2ac)
+
+  **了解更多**：[GUI 引擎配置详解](/xparse/v1/parse-config#force-engine)
+</Tip>
 
 ---
 

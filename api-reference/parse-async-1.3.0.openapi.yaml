@@ -280,8 +280,8 @@ components:
       properties:
         force_engine:
           type: string
-          enum: [textin, mineru, paddle_ocr]
-          description: 强制指定内部引擎，仅专家模式使用。<br />注意：暂时仅支持 textin，mineru 和 paddle_ocr 正在接入，敬请期待。
+          enum: [textin, mineru, paddle_ocr, textin_gui]
+          description: 强制指定内部引擎，仅专家模式使用。
         engine_params:
           type: object
           additionalProperties: true

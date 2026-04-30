@@ -399,8 +399,8 @@ components:
       properties:
         force_engine:
           type: string
-          enum: [textin, mineru, paddle_ocr]
-          description: 强制指定内部引擎，仅专家模式使用。<br />注意：暂时仅支持 textin，mineru 和 paddle_ocr 正在接入，敬请期待。
+          enum: [textin, mineru, paddle_ocr, textin_gui]
+          description: 强制指定内部引擎，仅专家模式使用。
         engine_params:
           type: object
           additionalProperties: true
@@ -991,7 +991,7 @@ tags:
       
       ## 功能特性
       - 📄 多格式支持：支持 PDF、图片等多种文档格式
-      - 🔍 多引擎支持：支持 TextIn、MinerU、PaddleOCR 等多种解析引擎
+      - 🔍 多引擎支持：支持 TextIn、MinerU、PaddleOCR、GUI 等多种解析引擎
       - 📊 结构化输出：将文档转换为标准化的元素结构
       - 🎯 语义保留：保留文档的语义结构，如标题、段落、表格等
       
