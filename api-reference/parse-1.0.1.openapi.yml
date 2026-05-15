@@ -30,14 +30,13 @@ paths:
           schema:
             type: string
             default: scan
-            enum: [auto, scan, lite, parse, vlm]
+            enum: [auto, scan, lite, parse]
           description: |
             文档的解析模式，默认为scan模式。
             - auto 由引擎自动选择，适用范围最广
             - scan 文档统一当成图片解析
             - lite 轻量版，只输出表格和文字结果
             - parse 仅电子档文字解析，速度最快
-            - vlm 视觉语言模型解析模式
 
         - in: query
           required: false
@@ -572,12 +571,12 @@ components:
               example: ""
             success_count:
               type: integer
-              description: 解析成功页数。当parse_mode为lite或vlm时返回。
+              description: 解析成功页数。当parse_mode为lite时返回。
               example: 1
             elements:
               type: array
               description: |
-                元素数组。当parse_mode为lite或vlm时返回此字段，替代原有的detail和pages结构。
+                元素数组。当parse_mode为lite时返回此字段，替代原有的detail和pages结构。
                 如需将elements格式转换为统一的`detail`/`pages`格式，请参考[转换脚本](/xparse/parse-quickstart#elements格式转换脚本)。
               items:
                 $ref: "#/components/schemas/element"
@@ -1606,7 +1605,7 @@ components:
     element:
       type: object
       description: |
-        元素对象。当parse_mode为lite或vlm时返回此结构。
+        元素对象。当parse_mode为lite时返回此结构。
         如需将elements格式转换为原有格式，请参考[转换脚本](/xparse/parse-quickstart#elements格式转换脚本)。
       properties:
         element_id:

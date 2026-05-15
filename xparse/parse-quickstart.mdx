@@ -244,7 +244,6 @@ if __name__ == "__main__":
   - scan 文档统一当成图片解析（如pdf每一页都当成图片解析）
   - lite 轻量版，只输出表格和文字结果
   - parse 仅电子档文字解析，速度最快
-  - vlm 视觉语言模型解析模式
 - **pdf_pwd**：当pdf为加密文档时，需要提供密码。
   - 备注：对前端封装该接口参数时，需要自行对密码进行安全防护。
 - **page_start**：当上传的是pdf时，表示从第几页开始解析，取值范围从1开始，不传该参数时默认从首页开始。
@@ -318,7 +317,7 @@ if __name__ == "__main__":
 解析后的结果数据将按照以下JSON格式返回。**根据 `parse_mode` 的不同，返回结构会有所不同**：
 
 - 当 `parse_mode` 为 `auto`、`scan`、`parse` 时，返回 `markdown`、`detail`、`pages` 等字段
-- 当 `parse_mode` 为 `lite` 或 `vlm` 时，返回新的 `elements` 结构（包含 `success_count`、`elements` 数组等字段）
+- 当 `parse_mode` 为 `lite` 时，返回新的 `elements` 结构（包含 `success_count`、`elements` 数组等字段）
 
 下面为您提供了两种格式的返回示例。如果您想了解最全面的返回结果说明，可以在[返回JSON结构说明](/xparse/parse-getjson)中查看，也可以在[API](/api-reference/endpoint/parse)中查看和调试。
 
@@ -409,7 +408,7 @@ if __name__ == "__main__":
 }
 ```
 
-#### parse_mode 为 lite/vlm 时的返回结构
+#### parse_mode 为 lite 时的返回结构
 
 ```json
 {
@@ -479,7 +478,7 @@ if __name__ == "__main__":
 
 #### Element type 类型说明
 
-当 `parse_mode` 为 `lite` 或 `vlm` 时，返回的 `elements` 数组中每个 element 的 `type` 字段可能的值如下：
+当 `parse_mode` 为 `lite` 时，返回的 `elements` 数组中每个 element 的 `type` 字段可能的值如下：
 
 | Element type      | 说明                                                 |
 | ----------------- | ---------------------------------------------------- |
@@ -506,7 +505,7 @@ def convert_elements_to_legacy_format(elements_result):
     将 elements 格式转换为原有的 detail/pages 格式
     
     Args:
-        elements_result: parse_mode 为 lite 或 vlm 时返回的 result 对象，包含 success_count 和 elements
+        elements_result: parse_mode 为 lite 时返回的 result 对象，包含 success_count 和 elements
     
     Returns:
         转换后的结果，包含 detail 和 pages 结构

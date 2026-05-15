@@ -581,7 +581,8 @@ components:
           description: 元素唯一标识
         type:
           type: string
-          description: 元素类型
+          description: |
+            元素类型，**GUI 引擎使用不同的元素类型**（如 button, input, checkbox 等），详见 [GUI 元素类型](#ui-元素类型)。
           enum:
             - Title
             - NarrativeText
@@ -668,6 +669,12 @@ components:
         height:
           type: integer
           description: 图片高度，仅 Image element
+        interactivity:
+          type: boolean
+          description: GUI元素是否可交互
+        description:
+          type: string
+          description: 元素的语义描述
         data_source:
           $ref: '#/components/schemas/DataSource'
 
