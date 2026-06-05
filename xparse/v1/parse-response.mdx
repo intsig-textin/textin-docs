@@ -270,7 +270,7 @@ pixel_y1 = coordinates[1] * page_height
 | `content_type` | string | 内容类型：`text`（文本）、`formula`（公式）、`image`（图片）、`mixed`（混合） |
 | `text` | string | 单元格文本 |
 | `coordinates` | array | 单元格四点坐标 |
-| `image_data` | object | 图片数据（当 `content_type` 为 `image` 时，需开启 `include_image_data`） |
+| `image_datas` | array | 图片数据数组（当 `content_type` 为 `image` 时，需开启 `include_image_data`）。了解版本差异请参考 [Schema 版本迁移指南](/xparse/schema-migration) |
 | `objects` | array | 单元格内嵌对象列表（需开启 `include_inline_objects`） |
 | `char_details` | array | 字符级详情（需开启 `include_char_details`） |
 
