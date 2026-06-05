@@ -1,0 +1,334 @@
+---
+title: "Schema 版本迁移指南"
+description: "了解 Schema 版本差异，选择合适版本，以及如何平滑迁移到新版本"
+---
+
+为了支持单元格内输出多个图片的能力，我们升级了 Table 结构的 Schema。本指南帮助你理解版本差异，选择合适的版本，以及平滑迁移到新版本。
+
+---
+
+## 版本说明
+
+### v1.3.0（旧版）— 单图支持
+
+- **发布时间**：原始版本
+- **特点**：单元格只返回第一个图片
+- **字段**：`image_data`（单对象）
+- **支持状态**：✅ 长期支持（不计划下线）
+
+### v1.3.1（新版）— 多图支持
+
+- **发布时间**：2026-06-03
+- **特点**：单元格支持返回多个图片
+- **字段**：`image_datas`（数组）
+- **支持状态**：✅ 推荐使用
+
+<Note>
+  **重点**：两个版本会长期共存，你可以根据业务需要选择。
+</Note>
+
+---
+
+## 如何选择版本
+
+### 使用 v1.3.1（推荐）
+
+如果你需要：
+
+- ✅ 在一个单元格中获取多张图片
+- ✅ 获取最新的特性和改进
+- ✅ 享受更好的向前兼容性
+
+### 保持使用 v1.3.0
+
+如果你：
+
+- ✅ 现有系统只需要单元格中的第一张图片
+- ✅ 暂时不想修改代码
+- ✅ 需要确保返回格式向后兼容
+
+---
+
+## 版本对比
+
+### Schema 结构变化
+
+```
+v1.3.0（旧版）
+├── cells[]
+│   └── image_data (Object)
+│       ├── image_url
+│       └── mime_type
+
+v1.3.1（新版）
+├── cells[]
+│   └── image_datas[] (Array)
+│       └── [0..N]
+│           ├── image_url
+│           └── mime_type
+```
+
+### 具体示例对比
+
+<Tabs>
+  <Tab title="v1.3.0 响应">
+    ```json
+    {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "text": "Product Name",
+          "image_data": {
+            "image_url": "https://webapi.textin.com/ocr_image/external/644a750608ccd302.jpg",
+            "mime_type": "image/jpeg"
+          }
+        }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="v1.3.1 响应">
+    ```json
+    {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "text": "Product Name",
+          "image_datas": [
+            {
+              "image_url": "https://webapi.textin.com/ocr_image/external/644a750608ccd302.jpg",
+              "mime_type": "image/jpeg"
+            },
+            {
+              "image_url": "https://webapi.textin.com/ocr_image/external/644a750608ccd303.jpg",
+              "mime_type": "image/jpeg"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### 关键差异
+
+| 方面 | v1.3.0 | v1.3.1 |
+|------|--------|--------|
+| 字段名 | `image_data` | `image_datas` |
+| 数据类型 | Object | Array |
+| 单元格图片数量 | 最多 1 张 | 多张 |
+| 无图片时 | 字段存在，为 `null` | 字段存在，为空数组 `[]` |
+
+---
+
+## 迁移步骤
+
+### 1. 检查当前版本
+
+查看你的代码中如何访问图片数据：
+
+```python
+# 如果你的代码这样写，说明使用的是 v1.3.0
+cell_image = cell.get('image_data')
+if cell_image:
+    url = cell_image['image_url']
+```
+
+### 2. 保留在 v1.3.0
+
+修改 API 请求，添加 `schema_version` 参数：
+
+```python
+import requests
+
+response = requests.post(
+    'https://api.textin.com/ocr/parse',
+    json={
+        'file_url': 'https://example.com/document.pdf',
+        'schema_version': '1.3.0'  # 指定版本
+    }
+)
+
+result = response.json()
+```
+
+### 3. 更新数据处理代码
+
+<Tabs>
+  <Tab title="迁移前（v1.3.0）">
+    ```python
+    for cell in result['cells']:
+        if 'image_data' in cell and cell['image_data']:
+            image_url = cell['image_data']['image_url']
+            process_image(image_url)
+    ```
+  </Tab>
+  <Tab title="迁移后（v1.3.1）">
+    ```python
+    for cell in result['cells']:
+        if 'image_datas' in cell:
+            for image_data in cell['image_datas']:
+                image_url = image_data['image_url']
+                process_image(image_url)
+    ```
+  </Tab>
+</Tabs>
+
+### 4. 测试验证
+
+- ☐ 使用包含多个图片的测试表格验证
+- ☐ 确认能获取到所有图片 URL
+- ☐ 检查无图片单元格的处理逻辑
+- ☐ 运行现有测试套件确保兼容性
+
+---
+
+## 代码示例
+
+### Python
+
+```python
+def extract_cell_images(cell, schema_version='1.3.1'):
+    """从单元格中提取所有图片 URL"""
+    if schema_version == '1.3.1':
+        image_datas = cell.get('image_datas', [])
+        return [img['image_url'] for img in image_datas]
+    
+    elif schema_version == '1.3.0':
+        image_data = cell.get('image_data')
+        if image_data:
+            return [image_data['image_url']]
+        return []
+    
+    raise ValueError(f"Unsupported schema_version: {schema_version}")
+
+# 使用示例
+response = call_api(schema_version='1.3.1')
+for cell in response['cells']:
+    images = extract_cell_images(cell, schema_version='1.3.1')
+    print(f"单元格 ({cell['row']}, {cell['col']}) 包含 {len(images)} 张图片")
+```
+
+### JavaScript
+
+```javascript
+function extractCellImages(cell, schemaVersion = '1.3.1') {
+  if (schemaVersion === '1.3.1') {
+    return (cell.image_datas || []).map(img => img.image_url);
+  }
+  
+  if (schemaVersion === '1.3.0') {
+    return cell.image_data ? [cell.image_data.image_url] : [];
+  }
+  
+  throw new Error(`Unsupported schema_version: ${schemaVersion}`);
+}
+
+// 使用示例
+const response = await callApi({ schema_version: '1.3.1' });
+response.cells.forEach(cell => {
+  const images = extractCellImages(cell, '1.3.1');
+  console.log(`单元格 (${cell.row}, ${cell.col}) 包含 ${images.length} 张图片`);
+});
+```
+
+---
+
+## 常见问题
+
+<AccordionGroup>
+  <Accordion title="Q: 默认使用哪个版本？">
+    **A:** 如果不指定 `schema_version`，API 默认返回 **v1.3.1**（最新版本）。
+  </Accordion>
+
+  <Accordion title="Q: v1.3.0 什么时候会下线？">
+    **A:** 暂时不计划下线 v1.3.0，我们会长期支持两个版本。如有变化会提前通知。
+  </Accordion>
+
+  <Accordion title="Q: 同一个请求中能混用两个版本吗？">
+    **A:** 不能。一个 API 请求只能指定一个 `schema_version`，整个响应都遵循该版本的格式。
+  </Accordion>
+
+  <Accordion title="Q: 如何处理无图片的单元格？">
+    **v1.3.0**
+    ```python
+    image_data = cell.get('image_data')
+    if image_data is None:
+        print("该单元格无图片")
+    ```
+
+    **v1.3.1**
+    ```python
+    image_datas = cell.get('image_datas', [])
+    if not image_datas:
+        print("该单元格无图片")
+    ```
+  </Accordion>
+
+  <Accordion title="Q: 旧版本的响应格式会改变吗？">
+    **A:** 不会。指定 `schema_version=1.3.0` 的请求永远返回 v1.3.0 格式，保证向后兼容。
+  </Accordion>
+
+  <Accordion title="Q: 如何验证我收到的是哪个版本的数据？">
+    **A:** 通过检查单元格中是否存在 `image_data` 或 `image_datas` 字段：
+    - 有 `image_data`（Object）→ v1.3.0
+    - 有 `image_datas`（Array）→ v1.3.1
+  </Accordion>
+
+  <Accordion title="Q: 无效的 schema_version 会发生什么？">
+    **A:** 返回 400 Bad Request 错误，错误信息会说明支持的版本列表。
+
+    ```json
+    {
+      "code": 400,
+      "message": "Invalid schema_version: 1.2.0. Supported versions: 1.3.0, 1.3.1"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 迁移时间表
+
+| 阶段 | 时间 | 内容 |
+|------|------|------|
+| 发布 | 2026-06-10 | v1.3.1 版本发布 |
+| 过渡 | 2026-06-10 ~ | v1.3.0 和 v1.3.1 并行支持 |
+| 下线 | 待定 | 如计划下线 v1.3.0 会提前通知 |
+
+---
+
+## 相关链接
+
+<CardGroup cols={2}>
+  <Card title="快速入门" href="/xparse/v1/quickstart">
+    5 分钟完成第一次文档解析
+  </Card>
+
+  <Card title="解析配置详解" href="/xparse/v1/parse-config">
+    了解如何配置 schema_version 参数
+  </Card>
+
+  <Card title="返回结构详解" href="/xparse/v1/parse-response">
+    完整的返回数据结构说明
+  </Card>
+
+  <Card title="API 参考" href="/api-reference/endpoint/xparse/v1/parse-sync">
+    完整的 API 参数与响应 Schema
+  </Card>
+</CardGroup>
+
+---
+
+## 支持与反馈
+
+遇到问题或需要帮助？
+
+- 📧 技术支持：support@textin.com
+- 🐛 问题反馈：[GitHub Issues](https://github.com/textin/issues)
+
+如有任何问题或遇到迁移困难，欢迎随时联系我们！

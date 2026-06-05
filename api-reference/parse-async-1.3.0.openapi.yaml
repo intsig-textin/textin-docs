@@ -68,6 +68,7 @@ paths:
                         parse_mode: "scan"
                         formula_level: 0
                         image_output_type: "url"
+                        recognize_chemical: true
                 webhook:
                   type: string
                   description: |

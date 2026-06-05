@@ -64,6 +64,7 @@ paths:
                         parse_mode: "scan"
                         formula_level: 0
                         image_output_type: "url"
+                        recognize_chemical: true
             encoding:
               file:
                 contentType: application/octet-stream
@@ -592,6 +593,7 @@ components:
             - Table
             - Image
             - Formula
+            - Chemical
             - Header
             - Footer
             - PageNumber
@@ -767,8 +769,11 @@ components:
           type: string
         coordinates:
           $ref: '#/components/schemas/Coordinates'
-        image_data:
-          $ref: '#/components/schemas/ImageData'
+        image_datas:
+          type: array
+          description: 单元格内的图片数组,支持多张图片。了解更多版本差异,请参考 [Schema 版本迁移指南](/xparse/schema-migration)
+          items:
+            $ref: '#/components/schemas/ImageData'
         objects:
           type: array
           items:

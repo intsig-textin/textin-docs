@@ -78,7 +78,8 @@
               {
                 "group": "FAQ",
                 "pages": [
-                  "xparse/charge"
+                  "xparse/charge",
+                  "xparse/schema-migration"
                 ]
               }
             ]
@@ -206,7 +207,8 @@
               {
                 "group": "FAQ",
                 "pages": [
-                  "xparse/charge"
+                  "xparse/charge",
+                  "xparse/schema-migration"
                 ]
               }
             ]
