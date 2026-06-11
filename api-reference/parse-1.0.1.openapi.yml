@@ -107,7 +107,7 @@ paths:
           name: get_image
           schema:
             type: string
-            default: objects
+            default: none
             enum: [none, page, objects, both]
           description: |
             获取markdown里的图片，默认为none，不返回任何图像
