@@ -79,7 +79,8 @@
                 "group": "FAQ",
                 "pages": [
                   "xparse/charge",
-                  "xparse/schema-migration"
+                  "xparse/schema-migration",
+                  "xparse/api-migration"
                 ]
               }
             ]
@@ -208,7 +209,8 @@
                 "group": "FAQ",
                 "pages": [
                   "xparse/charge",
-                  "xparse/schema-migration"
+                  "xparse/schema-migration",
+                  "xparse/api-migration"
                 ]
               }
             ]
