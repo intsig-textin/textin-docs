@@ -400,7 +400,7 @@ components:
       properties:
         force_engine:
           type: string
-          enum: [textin, mineru, paddle_ocr, textin_gui]
+          enum: [textin, textin_gui]
           description: 强制指定内部引擎，仅专家模式使用。
         engine_params:
           type: object
@@ -653,7 +653,7 @@ components:
           description: 与当前 element 直接关联的另一个 element ID，如图片/表格与其标题的关联。
         is_continuation:
           type: boolean
-          description: 是否为跨页续接块
+          description: 是否为跨页或跨栏续接块
         continuation_of:
           type: string
           description: 当 is_continuation=true 时，指向被续接的前一个 element ID。例如表格跨页时，第二页的 Table element 通过此字段指向第一页的 Table element
@@ -1003,7 +1003,7 @@ tags:
       
       ## 功能特性
       - 📄 多格式支持：支持 PDF、图片等多种文档格式
-      - 🔍 多引擎支持：支持 TextIn、MinerU、PaddleOCR、GUI 等多种解析引擎
+      - 🔍 多引擎支持：支持 TextIn、GUI 等多种解析引擎
       - 📊 结构化输出：将文档转换为标准化的元素结构
       - 🎯 语义保留：保留文档的语义结构，如标题、段落、表格等
       

@@ -83,7 +83,7 @@ description: "使用 Dify + xParse 通过知识流水线构建知识库，并创
 1. 添加第二个节点，选择"工具"节点，选择 xParse -> 文档解析
    - **文件输入**：选择数据源节点的 `file` 输出
 3. 配置解析参数：
-   - **解析引擎**：可选择 `Textin`（推荐）、`Textin Lite`、`Mineru`、`PaddleOCR` 等
+   - **解析引擎**：可选择 `Textin`（推荐）、`Textin Lite`、`GUI` 等
    - **预处理**：可选择 `切边矫正`、`去水印` 等（根据文档类型选择）
 
 ![配置 xParse 解析节点](/images/integrations/dify-knowledge-pipeline-xparse.png)
@@ -91,7 +91,7 @@ description: "使用 Dify + xParse 通过知识流水线构建知识库，并创
 xParse 插件支持以下配置选项：
 
 - **文件输入**：选择要解析的文件（必填）
-- **解析引擎**：可选择 `Textin`（推荐）、`Textin Lite`、`Mineru`、`PaddleOCR` 等（陆续接入中）
+- **解析引擎**：可选择 `Textin`（推荐）、`Textin Lite`、`GUI` 等（陆续接入中）
 - **预处理**：可选择 `切边矫正`、`去水印` 等
 
 > 提示：其他参数详情可参考 [插件说明文档](https://marketplace.dify.ai/plugins/intsig-textin/xparse)
@@ -266,8 +266,7 @@ LLM 生成（基于检索到的内容生成回答）
 A: 
 - **Textin**：适合大多数场景，速度和准确性俱佳（推荐）
 - **Textin Lite**：适合纯文本、表格图片、电子档 PDF 等场景，速度更快，价格更低
-- **Mineru**：适合学术论文等场景，表现优异
-- **PaddleOCR**：适合多语言和复杂文档场景（如 PPT），表现优异
+- **GUI**：适合桌面/移动应用和网页界面截图识别，能识别按钮、输入框等 UI 元素
 
 ### Q: 为什么选择父子文本分块？
 

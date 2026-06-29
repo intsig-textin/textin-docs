@@ -281,7 +281,7 @@ components:
       properties:
         force_engine:
           type: string
-          enum: [textin, mineru, paddle_ocr, textin_gui]
+          enum: [textin, textin_gui]
           description: 强制指定内部引擎，仅专家模式使用。
         engine_params:
           type: object
