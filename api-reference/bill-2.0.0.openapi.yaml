@@ -77,7 +77,7 @@ paths:
           支持以下两种请求格式
 
           1. Content-Type: application/octet-stream
-          要上传的图片，目前支持jpg、png、bmp、pdf、tiff、ofd、单帧gif等大部分格式，pdf和ofd文件支持多页​请注意，请求体的数据格式为本地文件的二进制流，非 FormData 或其他格式。文件大小不超过 50M，图像宽高须介于 20 和 10000（像素）之间。
+          要上传的图片，目前支持jpg、png、bmp、pdf、tiff、ofd、xml、单帧gif等大部分格式，pdf和ofd文件支持多页​请注意，请求体的数据格式为本地文件的二进制流，非 FormData 或其他格式。文件大小不超过 50M，图像宽高须介于 20 和 10000（像素）之间。
 
           2. Content-Type: text/plain
           请求体的数据格式为文本，内容为在线文件的URL链接（支持http以及https协议）。在线文件大小不超过 50M，图像宽高须介于 20 和 10000（像素）之间。
