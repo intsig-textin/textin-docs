@@ -35,7 +35,15 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
       "image_output_type": "url",
       "recognize_chemical": true
     }
-  }
+  },
+  "exports": [
+    {
+      "format": "docx",
+      "config": {
+        "mode": "flow"
+      }
+    }
+  ]
 }
 ```
 
@@ -533,6 +541,58 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
 - 仅处理文档的特定页面
 - 减少处理时间和成本
 - 分批处理大型文档
+
+---
+
+## exports（格式转换）
+
+在解析文档的同时，额外将结果导出为 **docx / xlsx / pdf** 文件。解析结果（`markdown` / `elements` / `pages`）与导出文件在**同一次请求内**返回，各导出任务独立成败、互不影响。
+
+<Note>
+  不传 `exports` 时，响应与原解析接口完全一致（向后兼容）。导出文件通过下载接口获取，具体见[返回结构详解 - 格式转换结果](/xparse/v1/parse-response#格式转换结果（exports）)。
+</Note>
+
+```json
+{
+  "document": { "password": "加密文档密码" },
+  "scope": { "page_range": "1-10" },
+  "config": { "force_engine": "textin", "engine_params": {} },
+  "exports": [
+    { "format": "docx", "config": { "mode": "flow" } },
+    { "format": "xlsx", "config": { "scope": "table", "sheet_mode": "multi" } },
+    { "format": "pdf",  "config": { "mode": "layout" } }
+  ]
+}
+```
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `exports[].format` | 是 | 文件格式：`docx` / `xlsx` / `pdf`（每种格式最多出现一次） |
+| `exports[].config` | 否 | 按格式区分的导出配置，缺省字段使用默认值 |
+
+**各格式配置项**：
+
+| 格式 | 配置项 | 取值 | 默认 |
+| --- | --- | --- | --- |
+| docx | `mode` | `flow` / `layout` | `flow` |
+| xlsx | `scope` | `document`（全部元素）/ `table`（仅表格） | `document` |
+| xlsx | `sheet_mode` | `multi` / `single` | `multi` |
+| pdf | `mode` | `layout` | `layout` |
+
+**xlsx 分表逻辑（`scope` × `sheet_mode`）**：
+
+| scope | sheet_mode | 行为 |
+| --- | --- | --- |
+| `table` | `multi` | 每个表格一个 Sheet |
+| `table` | `single` | 所有表格放入同一个 Sheet |
+| `document` | `multi` | 每页一个 Sheet（文本段落 + 表格） |
+| `document` | `single` | 全部内容放入同一个 Sheet |
+
+**使用场景**：
+
+- 解析后直接获得可下载的 Word / Excel / PDF 文件，无需自行二次转换
+- 将表格批量导出为 Excel 便于数据处理
+- 还原文档版面生成 PDF 用于归档或分享
 
 ---
 
