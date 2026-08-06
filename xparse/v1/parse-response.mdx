@@ -274,6 +274,144 @@ pixel_y1 = coordinates[1] * page_height
 | `objects` | array | 单元格内嵌对象列表（需开启 `include_inline_objects`） |
 | `char_details` | array | 字符级详情（需开启 `include_char_details`） |
 
+<Note>
+  当请求参数 `element_merge_mode` 为 `merged` 时，合并后的单元格还会返回 `source_regions`、`role`、`header_cell_ids`、`text_source_ranges` 等跨页来源字段，详见[跨页表格合并](#单元格新增字段（merged-模式）)。
+</Note>
+
+---
+
+## 跨页表格合并（merged 模式）
+
+当一张表格被分页切断、跨越多个物理页时，可通过请求参数 `element_merge_mode` 选择输出方式。默认 `separate` 沿用按页输出，`merged` 则把同一张逻辑表合并为一个 Table 元素。
+
+<Tip>
+  `element_merge_mode` 的取值与配置方式，详见[解析配置详解](/xparse/v1/parse-config#element_merge_mode)。
+</Tip>
+
+### 两种模式对比
+
+**`separate`（默认）**：每个物理分页分别返回一个 Table 片段，通过 `metadata.is_continuation` 和 `metadata.continuation_of` 建立续接关系。
+
+```json
+[
+  {
+    "element_id": "table_fragment_p1",
+    "type": "Table",
+    "sub_type": "bordered",
+    "text": "<table>...</table>",
+    "page_number": 1,
+    "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84],
+    "metadata": { "is_continuation": false }
+  },
+  {
+    "element_id": "table_fragment_p2",
+    "type": "Table",
+    "sub_type": "bordered",
+    "text": "<table>...</table>",
+    "page_number": 2,
+    "coordinates": [0.1, 0.16, 0.9, 0.16, 0.9, 0.82, 0.1, 0.82],
+    "metadata": { "is_continuation": true, "continuation_of": "table_fragment_p1" }
+  }
+]
+```
+
+**`merged`**：同一张逻辑跨页表只返回一个合并后的 Table，`text` 为完整表格 HTML（续页重复的表头只保留一份，跨页的 `rowspan`/`colspan` 合并为一个单元格），并通过 `metadata.source_regions` 记录各物理页的来源区域。合并后的 `is_continuation` 固定为 `false`，不返回 `continuation_of`。
+
+```json
+{
+  "element_id": "table_merged_7b9a5d",
+  "type": "Table",
+  "sub_type": "bordered",
+  "text": "<table>...</table>",
+  "page_number": 1,
+  "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84],
+  "metadata": {
+    "is_continuation": false,
+    "table_structure_status": "available",
+    "table_layout": {
+      "rows": 8,
+      "cols": 4,
+      "header_rows": [1]
+    },
+    "source_regions": [
+      { "page_number": 1, "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84], "start_row": 1, "end_row": 4 },
+      { "page_number": 2, "coordinates": [0.1, 0.16, 0.9, 0.16, 0.9, 0.82, 0.1, 0.82], "start_row": 5, "end_row": 8 }
+    ]
+  },
+  "table_structure": {
+    "rows": 8,
+    "cols": 4,
+    "cells": ["..."]
+  }
+}
+```
+
+<Note>
+  `table_structure_status` 为 `available` 时，Table 必定带 `table_structure`（合并后的单元格结构，示例中的 `cells` 已省略，详见[单元格新增字段](#单元格新增字段（merged-模式）)）；为 `disabled` 或 `unavailable` 时则不返回 `table_structure`。
+</Note>
+
+<Note>
+  合并后的 Table 顶层 `page_number` 与 `coordinates` 只表示表格首页的位置（即 `source_regions[0]`）。要获取表格跨越的全部页面及各页坐标，请读取 `metadata.source_regions`。
+</Note>
+
+### 表级新增字段（merged 模式）
+
+`merged` 模式下，Table 元素的 `metadata` 会额外返回以下字段（无论是否开启 `include_table_structure`，`table_layout`、`source_regions`、`table_structure_status` 都必定返回）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `table_layout` | object | 合并后表格的逻辑网格信息 |
+| `table_layout.rows` | int | 合并表总行数（不含续页被去重的重复表头） |
+| `table_layout.cols` | int | 合并表总列数 |
+| `table_layout.header_rows` | int[] | 表头所在行号（1 起、去重、升序），可为空；多级表头列出全部表头行 |
+| `table_structure_status` | string | 单元格结构状态：`available`（已生成，存在 `table_structure`）、`disabled`（未开启 `include_table_structure`）、`unavailable`（已请求但引擎无法可靠生成） |
+| `source_regions` | array | 各物理页来源区域，按页码和阅读顺序排列 |
+| `source_regions[].page_number` | int | 物理页码（从 1 开始） |
+| `source_regions[].coordinates` | array | 该页表格片段的归一化四点坐标 |
+| `source_regions[].start_row` | int | 该片段贡献的首个合并表行号（1 起，闭区间） |
+| `source_regions[].end_row` | int | 该片段贡献的末个合并表行号（1 起，闭区间）。各区间的行范围连续覆盖 `1` 到 `table_layout.rows`，互不重叠 |
+
+### 单元格新增字段（merged 模式）
+
+`merged` 且开启 `include_table_structure` 时，合并后的单元格（Canonical Cell）在[单元格字段](#单元格字段)基础上，额外返回跨页来源信息：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `source_regions` | array | 该单元格在各物理页的来源区域，每项含 `page_number` 和归一化 `coordinates`；跨页 `rowspan` 单元格可有多个区域 |
+| `role` | string | 单元格角色：`column_header`、`row_header`、`data`、`footer`；无法判断时可省略，此时可参照 `table_layout.header_rows` 判断是否表头 |
+| `header_cell_ids` | array | 该单元格对应的表头单元格 ID 列表；多级表头或横跨多列时可引用多个；表头单元格自身为空或省略 |
+| `text_source_ranges` | array | 把合并后 `text` 的字符区间映射回物理页。每项含 `start`/`end`（相对 `text` 的 `[start, end)` 半开区间，单位为 Unicode 码点）、`page_number`、`coordinates`；文本跨页的长单元格建议返回。多个区间按 `start` 升序且互不重叠；计算偏移前请勿对 `text` 做 trim、空白折叠或 Unicode 归一化，否则区间会错位 |
+
+<Note>
+  合并后单元格的 `coordinates` 只表示该单元格在首页的位置（即 `source_regions[0].coordinates`）。要获取单元格跨越的全部页面位置，请读取 `source_regions`。续页重复的表头不产生新单元格，其在各页出现的位置都并入同一个表头单元格的 `source_regions`。
+</Note>
+
+### Cell 关闭时（include_table_structure=false）
+
+`merged` + `include_table_structure=false` 时不返回 `table_structure`，但 `table_layout` 和表级 `source_regions` 仍会返回，`table_structure_status` 为 `disabled`：
+
+```json
+{
+  "element_id": "table_merged_7b9a5d",
+  "type": "Table",
+  "sub_type": "bordered",
+  "text": "<table>...</table>",
+  "page_number": 1,
+  "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84],
+  "metadata": {
+    "is_continuation": false,
+    "table_structure_status": "disabled",
+    "table_layout": { "rows": 12, "cols": 4, "header_rows": [1] },
+    "source_regions": [
+      { "page_number": 1, "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84], "start_row": 1, "end_row": 6 },
+      { "page_number": 2, "coordinates": [0.1, 0.18, 0.9, 0.18, 0.9, 0.84, 0.1, 0.84], "start_row": 7, "end_row": 12 }
+    ]
+  }
+}
+```
+
+此时仍可从 HTML 恢复逻辑行列，并按表级 `source_regions` 定位整段物理页区域；无法提供的是单元格级精确坐标、表头引用和字符级来源。
+
 ---
 
 ## 图片数据（image_data）
@@ -442,6 +580,7 @@ pixel_y1 = coordinates[1] * page_height
       "page_height": 1683,
       "page_image_url": "https://example.com/page-1.jpg",
       "element_ids": ["el_001", "el_002", "el_003"],
+      "spanning_element_ids": ["table_merged_7b9a5d"],
       "dpi": 144,
       "angle": 0,
       "status": "Success"
@@ -457,6 +596,7 @@ pixel_y1 = coordinates[1] * page_height
 | `page_height` | number | 页面高度（像素） |
 | `page_image_url` | string | 页面渲染图 URL |
 | `element_ids` | array | 该页包含的元素 ID 列表，顺序与页面内默认阅读顺序一致 |
+| `spanning_element_ids` | array | 跨页元素 ID 列表（仅 `element_merge_mode=merged` 时返回）。合并后的跨页表格只在首个来源页的 `element_ids` 中出现一次，其余来源页通过本字段引用，不在 `element_ids` 中重复 |
 | `dpi` | int | 当前页转成图片所用的 DPI |
 | `angle` | number | 页面旋转角度（0 度为正常阅读方向，顺时针旋转） |
 | `status` | string | 页面处理状态 |

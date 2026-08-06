@@ -18,6 +18,7 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
     "include_char_details": false,
     "include_image_data": false,
     "include_table_structure": false,
+    "element_merge_mode": "separate",
     "pages": false,
     "title_tree": false,
     "table_view": "html",
@@ -315,6 +316,46 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
   }
 }
 ```
+
+### element\_merge\_mode
+
+控制跨页表格的输出方式：按物理页分别输出，还是合并为一个逻辑表格。
+
+| 字段 | 类型 | 默认值 | 可选值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `element_merge_mode` | string | `separate` | `separate`, `merged` | 控制跨页表格按物理页分别输出，或合并为一个逻辑 Table |
+
+**两种模式的行为**：
+
+- `separate`：每个物理分页分别返回一个 Table 片段（fragment），通过 `metadata.is_continuation` 和 `metadata.continuation_of` 保留跨页续接关系。
+- `merged`：同一张逻辑跨页表只返回一个合并后的 Table（Canonical Table），`text` 为完整的表格 HTML，并通过 `source_regions` 记录每个物理页的来源区域。
+- 单页表格在两种模式下输出一致。
+
+**使用场景**：
+
+- 需要把跨页表格连续渲染为一张完整表格时，使用 `merged`
+- 需要按物理页逐页定位、逐页处理表格片段时，使用 `separate`
+
+```json
+{
+  "capabilities": {
+    "element_merge_mode": "merged"
+  }
+}
+```
+
+**与 `include_table_structure` 的组合**：两个参数相互独立，可自由组合。
+
+| `element_merge_mode` | `include_table_structure` | 输出 |
+| --- | --- | --- |
+| `separate` | `false` | 每页一个 Table 片段，不返回单元格结构 |
+| `separate` | `true` | 每页一个 Table 片段，各自返回单元格结构 |
+| `merged` | `false` | 一个合并后的 Table，返回完整 HTML、`table_layout` 和表级 `source_regions` |
+| `merged` | `true` | 一个合并后的 Table，并返回合并后的单元格结构及单元格来源映射 |
+
+<Note>
+  `table_view` 只控制 `data.markdown` 中表格的表达格式，不影响 `elements[]` 的跨页输出模式。
+</Note>
 
 ### pages
 

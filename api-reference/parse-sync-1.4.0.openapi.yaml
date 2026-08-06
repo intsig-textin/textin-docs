@@ -42,7 +42,7 @@ paths:
                   allOf:
                     - $ref: '#/components/schemas/ParseConfig'
                   example:
-                    # schema_version: "1.3.0"
+                    # schema_version: "1.4.0"
                     document:
                       password: "example-pdf-password"
                     capabilities:
@@ -84,7 +84,7 @@ paths:
                     code: 200
                     message: "success"
                     data:
-                      schema_version: "1.3.0"
+                      schema_version: "1.4.0"
                       file_id: "doc_7f3a2b"
                       job_id: "job_x9k2m"
                       success_count: 2
@@ -320,7 +320,7 @@ components:
       properties:
         # schema_version:
         #   type: string
-        #   default: '1.3.0'
+        #   default: '1.4.0'
         #   description: 目标 schema 版本
         document:
           $ref: '#/components/schemas/DocumentConfig'
@@ -363,6 +363,12 @@ components:
           type: boolean
           default: false
           description: 是否返回表格的详细结构化信息。开启后，以 JSON 格式返回表格的行、列以及每个单元格的详细信息。
+        element_merge_mode:
+          type: string
+          enum: [separate, merged]
+          default: separate
+          description: >-
+            控制跨页表格的输出方式。separate（默认）：每个物理分页分别返回一个 Table 片段，通过 metadata.is_continuation 和 continuation_of 保留续接关系；merged：同一张逻辑跨页表合并为一个 Table，text 为完整表格 HTML，并通过 metadata.source_regions 记录各物理页来源区域。
         pages:
           type: boolean
           default: false
@@ -512,7 +518,7 @@ components:
       properties:
         schema_version:
           type: string
-          example: '1.3.0'
+          example: '1.4.0'
         file_id:
           type: string
           description: 文档唯一标识
@@ -677,8 +683,57 @@ components:
         description:
           type: string
           description: 元素的语义描述
+        table_layout:
+          $ref: '#/components/schemas/TableLayout'
+        table_structure_status:
+          type: string
+          enum: [available, disabled, unavailable]
+          description: >-
+            合并后 Table 的单元格结构状态，仅 element_merge_mode=merged 时返回。available：已生成，存在 table_structure；disabled：未开启 include_table_structure；unavailable：已请求但引擎无法可靠生成。
+        source_regions:
+          type: array
+          description: 合并后 Table 的各物理页来源区域，仅 element_merge_mode=merged 时返回，按页码和阅读顺序排列
+          items:
+            $ref: '#/components/schemas/TableSourceRegion'
         data_source:
           $ref: '#/components/schemas/DataSource'
+
+    TableLayout:
+      type: object
+      description: 合并后表格的逻辑网格信息，仅 element_merge_mode=merged 时返回
+      properties:
+        rows:
+          type: integer
+          minimum: 1
+          description: 合并表总行数，不含续页被去重的重复表头
+        cols:
+          type: integer
+          minimum: 1
+          description: 合并表总列数
+        header_rows:
+          type: array
+          description: 表头所在行号（1 起、去重、升序），可为空；多级表头列出全部表头行
+          items:
+            type: integer
+
+    TableSourceRegion:
+      type: object
+      description: 合并后 Table 中某个物理页的来源区域
+      properties:
+        page_number:
+          type: integer
+          minimum: 1
+          description: 物理页码，从 1 开始
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        start_row:
+          type: integer
+          minimum: 1
+          description: 该片段贡献的首个合并表行号（1 起，闭区间）
+        end_row:
+          type: integer
+          minimum: 1
+          description: 该片段贡献的末个合并表行号（1 起，闭区间）
 
     # ──────────────────────────────────────
     # Object
@@ -783,6 +838,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CharDetail'
+        source_regions:
+          type: array
+          description: 合并后单元格的各物理页来源区域，仅 element_merge_mode=merged 时返回；跨页 rowspan 单元格可有多个区域
+          items:
+            $ref: '#/components/schemas/CellSourceRegion'
+        role:
+          type: string
+          enum: [column_header, row_header, data, footer]
+          description: 单元格角色，仅 element_merge_mode=merged 时返回；无法判断时可省略，此时可参照 table_layout.header_rows 判断是否表头
+        header_cell_ids:
+          type: array
+          description: 该单元格对应的表头单元格 ID 列表，仅 element_merge_mode=merged 时返回；多级表头或横跨多列时可引用多个；表头单元格自身为空或省略
+          items:
+            type: string
+        text_source_ranges:
+          type: array
+          description: 把合并后 text 的字符区间映射回物理页，仅 element_merge_mode=merged 时返回；文本跨页的长单元格建议返回。多个区间按 start 升序且互不重叠；计算偏移前请勿对 text 做 trim、空白折叠或 Unicode 归一化
+          items:
+            $ref: '#/components/schemas/TextSourceRange'
+
+    CellSourceRegion:
+      type: object
+      description: 合并后单元格在某个物理页的来源区域
+      properties:
+        page_number:
+          type: integer
+          minimum: 1
+          description: 物理页码，从 1 开始
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+
+    TextSourceRange:
+      type: object
+      description: 合并后单元格文本的字符区间到物理页的映射
+      properties:
+        start:
+          type: integer
+          minimum: 0
+          description: 相对 cell.text 的起始偏移（0 起，Unicode 码点）
+        end:
+          type: integer
+          minimum: 0
+          description: 相对 cell.text 的结束偏移，半开区间 [start, end)
+        page_number:
+          type: integer
+          minimum: 1
+          description: 该文本区间所在物理页码
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
 
     # ──────────────────────────────────────
     # Char Details
@@ -938,6 +1042,12 @@ components:
         element_ids:
           type: array
           description: 该页包含的 element ID 列表，顺序与页面内默认阅读顺序一致
+          items:
+            type: string
+        spanning_element_ids:
+          type: array
+          description: >-
+            跨页元素 ID 列表，仅 element_merge_mode=merged 时返回。合并后的跨页表格只在首个来源页的 element_ids 中出现一次，其余来源页通过本字段引用，不在 element_ids 中重复。
           items:
             type: string
         dpi:
