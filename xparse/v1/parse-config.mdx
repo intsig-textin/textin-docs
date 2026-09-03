@@ -599,7 +599,7 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
   "scope": { "page_range": "1-10" },
   "config": { "force_engine": "textin", "engine_params": {} },
   "exports": [
-    { "format": "docx", "config": { "mode": "flow" } },
+    { "format": "docx", "config": { "mode": "flow", "handwritten_render": 0 } },
     { "format": "xlsx", "config": { "scope": "table", "sheet_mode": "multi" } },
     { "format": "pdf",  "config": { "mode": "layout" } }
   ]
@@ -616,9 +616,20 @@ description: "详细说明文档解析 API 的输入参数配置，包括能力�
 | 格式 | 配置项 | 取值 | 默认 |
 | --- | --- | --- | --- |
 | docx | `mode` | `flow` / `layout` | `flow` |
+| docx | `handwritten_render` | `0` / `1` / `2` | `0` |
 | xlsx | `scope` | `document`（全部元素）/ `table`（仅表格） | `document` |
 | xlsx | `sheet_mode` | `multi` / `single` | `multi` |
 | pdf | `mode` | `layout` | `layout` |
+
+**docx `handwritten_render`（手写体输出方式）**：
+
+控制导出的 Word 文档中手写内容的呈现方式，适配不同的编辑与归档场景。
+
+| 取值 | 说明 |
+| --- | --- |
+| `0` | 转为印刷体文字输出（默认） |
+| `1` | 以图片形式保留手写内容原样 |
+| `2` | 不输出手写内容 |
 
 **xlsx 分表逻辑（`scope` × `sheet_mode`）**：
 
