@@ -108,7 +108,49 @@ description: "为各类 AI Agent 框架提供标准化的文档解析能力封�
 
 ## MCP Server
 
-实现大模型客户端与 TextIn 解析引擎的标准化通信，让模型能够"看懂"任意格式文档。按照[文档说明](/pipeline/api-key)获取 APP_ID 与 APP_SECRET，然后配置 MCP Server：
+实现大模型客户端与 TextIn 解析引擎的标准化通信，让模型能够"看懂"任意格式文档。TextIn 提供两种接入方式：**远程 MCP Server（HTTP，推荐）** 和 **本地 MCP Server（npx）**，可按需选择。
+
+### 远程 MCP Server（HTTP，推荐）
+
+官方托管的远程 MCP Server，云端运行，无需本地安装 Node 环境，支持标准 OAuth 2.1 认证。
+
+**通过 Claude Code 一键添加**
+
+```bash
+claude mcp add --scope user --transport http xparse-mcp https://api.textin.com/xparse-mcp
+```
+
+**手动配置**
+
+在 MCP 客户端配置文件中添加，默认使用标准 OAuth 2.1 协议进行认证：
+
+```json
+{
+  "xparse-mcp": {
+    "type": "http",
+    "url": "https://api.textin.com/xparse-mcp"
+  }
+}
+```
+
+也可以手动指定 `x-ti-app-id` / `x-ti-secret-code` 进行认证（按[文档说明](/xparse/api-key)获取 APP_ID 与 APP_SECRET）：
+
+```json
+{
+  "xparse-mcp": {
+    "type": "http",
+    "url": "https://api.textin.com/xparse-mcp",
+    "headers": {
+      "x-ti-app-id": "你的真实APP_ID",
+      "x-ti-secret-code": "你的真实APP_SECRET"
+    }
+  }
+}
+```
+
+### 本地 MCP Server（npx）
+
+本地运行版本，通过 `npx` 启动，使用环境变量传入凭证。按照[文档说明](/xparse/api-key)获取 APP_ID 与 APP_SECRET，然后配置 MCP Server：
 
 ```json
 {
