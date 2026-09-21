@@ -19,7 +19,7 @@
   "navigation": {
     "versions": [
       {
-        "version": "0.7.1",
+        "version": "xParse",
         "tabs": [
           {
             "tab": "使用指南",
@@ -164,67 +164,6 @@
             "tab": "开源工具",
             "pages": [
               "xparse/v1/open-source/visualizer"
-            ]
-          }
-        ]
-      },
-      {
-        "version": "0.7.0",
-        "tabs": [
-          {
-            "tab": "Guides",
-            "groups": [
-              {
-                "group": "产品概览",
-                "pages": [
-                  "xparse/overview",
-                  "xparse/api-key",
-                  "xparse/product-manual"
-                ]
-              },
-              {
-                "group": "文档解析",
-                "pages": [
-                  "xparse/parse-quickstart",
-                  "xparse/parse-getjson",
-                  "xparse/parse-gettable",
-                  "xparse/parse-getcatalog",
-                  "xparse/parse-getimage",
-                  "xparse/parse-getpos",
-                  "xparse/parse-max-workers"
-                ]
-              },
-              {
-                "group": "文档抽取",
-                "pages": [
-                  "xparse/extract-quickstart",
-                  "xparse/extract-getjson",
-                  "xparse/extract-gettable",
-                  "xparse/extract-getpos",
-                  "xparse/extract-asyncio",
-                  "xparse/extract-max-concurrent"
-                ]
-              },
-              {
-                "group": "FAQ",
-                "pages": [
-                  "xparse/charge",
-                  "xparse/schema-migration",
-                  "xparse/api-migration"
-                ]
-              }
-            ]
-          },
-          {
-            "tab": "API",
-            "groups": [
-              {
-                "group": "智能文档解析",
-                "pages": [
-                  "api-reference/endpoint/parse",
-                  "api-reference/endpoint/extract"
-                ]
-              }
             ]
           }
         ]
@@ -436,17 +375,6 @@
       }
     ],
     "global": {
-      "languages": [
-        {
-          "language": "cn",
-          "default": true,
-          "href": "https://mintlify.com/docs"
-        },
-        {
-          "language": "en",
-          "href": "https://mintlify.com/docs"
-        }
-      ],
       "anchors": []
     }
   },
