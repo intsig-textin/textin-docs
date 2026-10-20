@@ -107,13 +107,6 @@
             ]
           },
           {
-            "tab": "CLI & SDK",
-            "pages": [
-              "xparse/v1/cli",
-              "xparse/v1/sdk-python"
-            ]
-          },
-          {
             "tab": "实战教程",
             "groups": [
               {
@@ -157,6 +150,8 @@
             "tab": "生态集成",
             "pages": [
               "xparse/v1/ecosystem/skills-mcp",
+              "xparse/v1/cli",
+              "xparse/v1/sdk-python",
               "xparse/v1/ecosystem/rag-agent"
             ]
           },
