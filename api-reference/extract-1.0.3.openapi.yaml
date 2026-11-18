@@ -500,9 +500,13 @@ components:
       properties:
         color:
           type: string
-          nullable: true
           description: |
             当前印章颜色
+            - 红色
+            - 蓝色
+            - 黑色
+            - 其他
+          enum:
             - 红色
             - 蓝色
             - 黑色
@@ -510,16 +514,25 @@ components:
           example: "红色"
         position:
           type: array
-          description: 印章四个顶点的归一化坐标，未提供位置时为空数组
+          description: 印章四个顶点的归一化坐标
           items:
             type: number
-          default: []
+            minimum: 0
+            maximum: 1
+          minItems: 8
+          maxItems: 8
           example: [0.55, 0.50, 0.79, 0.50, 0.79, 0.72, 0.55, 0.72]
         stamp_shape:
           type: string
-          nullable: true
           description: |
             当前印章形状
+            - 圆章
+            - 椭圆章
+            - 方章
+            - 三角章
+            - 菱形章
+            - 其他
+          enum:
             - 圆章
             - 椭圆章
             - 方章
@@ -529,9 +542,17 @@ components:
           example: "圆章"
         type:
           type: string
-          nullable: true
           description: |
             当前印章类型
+            - 公章
+            - 个人章
+            - 专用章
+            - 其他
+            - 合同专用章
+            - 财务专用章
+            - 发票专用章
+            - 业务专用章
+          enum:
             - 公章
             - 个人章
             - 专用章
