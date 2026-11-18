@@ -141,6 +141,11 @@ components:
       description: 解析阶段参数
       additionalProperties: false
       properties:
+        parse_version:
+          type: string
+          description: 文档解析版本
+          enum: [v1, v3]
+          default: v1
         page_start:
           type: integer
           description: 从第几页开始抽取，默认为1
@@ -153,14 +158,14 @@ components:
           example: 10
         get_image:
           type: string
-          description: 获取图片，默认为objects
+          description: 获取图片，默认为 page
           enum:
             - none
             - both
             - page
             - objects
-          default: objects
-          example: "objects"
+          default: page
+          example: "page"
         crop_dewarp:
           type: integer
           description: 是否进行切边矫正处理
@@ -185,14 +190,18 @@ components:
           enum: [auto, scan, lite, parse, vlm]
           default: "scan"
           example: "scan"
-        formula_level:
-          type: integer
-          description: 公式识别等级
-          enum: [0, 1, 2]
-          default: 0
-          example: 0
+        parse_extra:
+          type: string
+          nullable: true
+          description: |
+            版本专用解析参数的 JSON 字符串。v1 使用扁平键值，v3 使用嵌套配置。
+            对应相同解析能力时，parse_options 的固定字段优先，即使配置键名不同。
+            v1 示例为 '{"formula_level":0}'。
+            v3 示例为 '{"capabilities":{"include_table_structure":true}}'。
+          example: '{"formula_level":0}'
         table_flavor:
           type: string
+          description: 表格输出格式。v3 下设置为 none 时回退为 html。
           default: html
           enum: [md, html, none]
         pdf_pwd:
@@ -209,12 +218,12 @@ components:
         generate_citations:
           type: boolean
           description: 是否生成引用信息
-          default: false
+          default: true
           example: true
         stamp:
           type: boolean
           description: 是否调用印章识别
-          default: false
+          default: true
           example: true
 
     BaseResponse:
@@ -301,8 +310,13 @@ components:
     ExtractionResult:
       type: object
       properties:
+        parse_version:
+          type: string
+          description: 本次请求实际使用的解析版本
+          example: v1
         result:
           type: object
+          required: [success_count, extracted_schema, usage, pages]
           properties:
             success_count:
               type: integer
@@ -332,8 +346,10 @@ components:
                   value: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
                   bounding_regions:
                     - page_number: 1
-                      position: [137, 599, 1129, 599, 1129, 625, 182, 625]
+                      position: [0.15, 0.32, 0.84, 0.32, 0.84, 0.35, 0.15, 0.35]
                       text: "童装 Looney Tunes UT（短袖T恤）女装SUPIMA COTTON圆领T恤（短袖）"
+            usage:
+              $ref: "#/components/schemas/Usage"
             pages:
               type: array
               description: 文档每页的处理信息
@@ -352,6 +368,10 @@ components:
               type: integer
               description: 解析耗时(ms)
               example: 1080
+            doc_cvt_duration:
+              type: integer
+              description: 文档格式转换耗时（毫秒）
+              default: 0
             retrieve_duration:
               type: integer
               description: 检索耗时(ms)
@@ -368,6 +388,27 @@ components:
               type: integer
               description: 格式化耗时(ms)
               example: 51
+
+    Usage:
+      type: object
+      description: 抽取用量统计
+      properties:
+        prompt_tokens:
+          type: integer
+          description: 输入 token 总数
+          default: 0
+        completion_tokens:
+          type: integer
+          description: 输出 token 总数
+          default: 0
+        total_tokens:
+          type: integer
+          description: 输入和输出 token 总数
+          default: 0
+        request_number:
+          type: integer
+          description: 模型调用总次数
+          default: 0
 
     CitationItem:
       type: object
@@ -408,7 +449,7 @@ components:
             maximum: 1
           minItems: 8
           maxItems: 8
-          example: [137, 599, 1129, 599, 1129, 625, 182, 625]
+          example: [0.15, 0.32, 0.84, 0.32, 0.84, 0.35, 0.15, 0.35]
         text:
           type: string
           description: 该边界框内的文本内容
@@ -418,8 +459,6 @@ components:
       type: object
       required:
         - page_number
-        - status
-        - durations
       properties:
         page_number:
           type: integer
@@ -427,8 +466,13 @@ components:
           example: 1
         image_id:
           type: string
+          nullable: true
           description: 页面图片ID，用于下载图片
           example: "62bfe3c3a8e9c9cf.jpg"
+        page_image_url:
+          type: string
+          nullable: true
+          description: 页面渲染图直链。v3 解析可返回此字段，v1 通常通过 image_id 获取图片。
         height:
           type: integer
           description: 页面高度
@@ -470,14 +514,14 @@ components:
           example: "红色"
         position:
           type: array
-          description: 印章的坐标信息
+          description: 印章四个顶点的归一化坐标
           items:
             type: number
             minimum: 0
             maximum: 1
           minItems: 8
           maxItems: 8
-          example: [1223, 995, 1642, 1007, 1630, 1689, 1621, 1677]
+          example: [0.55, 0.50, 0.79, 0.50, 0.79, 0.72, 0.55, 0.72]
         stamp_shape:
           type: string
           description: |
@@ -520,5 +564,10 @@ components:
           example: "公章"
         value:
           type: string
+          nullable: true
           description: 印章的文本内容
           example: "电力公司专用章"
+        page_number:
+          type: integer
+          description: 印章所在页码
+          default: 1
